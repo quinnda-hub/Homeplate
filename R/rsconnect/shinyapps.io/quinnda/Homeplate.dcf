@@ -1,0 +1,13 @@
+name: Homeplate
+title: Homeplate
+username:
+account: quinnda
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 6975022
+bundleId: 6289633
+url: https://quinnda.shinyapps.io/Homeplate/
+when: 1662869819.83885
+lastSyncTime: 1662869819.83885
+asMultiple: FALSE
+asStatic: FALSE
