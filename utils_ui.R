@@ -66,15 +66,15 @@ battingLogsRctbl <- function(logs) {
       date = colDef(
         name = "Date",
         align = "left",
-        maxWidth = 110,
+        minWidth = 100,
         defaultSortOrder = "asc"
       ),
       team_id = colDef(
         cell = \(value) {
           abr[team_id == value, team]
         },
-        maxWidth = 60,
-        name = "Team"
+        name = "Team",
+        minWidth = 60
       ),
       opponent_id = colDef(
         cell = \(value, index) {
@@ -85,19 +85,19 @@ battingLogsRctbl <- function(logs) {
             paste0("@", val)
           }
         },
-        maxWidth = 100,
-        name = "Opponent"
+        name = "Opponent",
+        minWidth = 90
       ),
       win = colDef(
         name = "Result",
-        maxWidth = 70,
         cell = function(value) {
           if (value) {
             "Win"
           } else {
             "Loss"
           }
-        }
+        },
+        minWidth = 70
       ),
       plate_appearances = colDef(name = "PA"),
       at_bats = colDef(show = FALSE),
@@ -112,27 +112,29 @@ battingLogsRctbl <- function(logs) {
       intentional_walks = colDef(name = "IBB"),
       stolen_bases = colDef(name = "SB"),
       caught_stealing = colDef(name = "CS"),
-      left_on_base = colDef(name = "LOB"),
+      left_on_base = colDef(name = "LOB",
+                            minWidth = 45),
       hit_by_pitch = colDef(show = FALSE),
       sac_flies = colDef(show = FALSE),
       total_bases = colDef(show = FALSE),
       home = colDef(show = FALSE),
       avg = colDef(name = "AVG",
-                   maxWidth = 60),
+                   minWidth = 55),
       obp = colDef(name = "OBP",
-                   maxWidth = 60),
+                   minWidth = 55),
       slg = colDef(name = "SLG",
-                   maxWidth = 60),
+                   minWidth = 55),
       ops = colDef(name = "OPS",
-                   maxWidth = 60)
+                   minWidth = 55)
     ),
     defaultColDef = colDef(
       align = "center",
       na = "0",
-      maxWidth = 50
+      minWidth = 40
     ),
     compact = TRUE,
-    style = list(fontFamily = gt::google_font("Fira Mono")),
+    style = list(fontFamily = gt::google_font("Fira Mono"),
+                 maxWidth = 1600),
     pagination = FALSE
   )
 }
@@ -180,12 +182,12 @@ battingStatsRctbl <- function(stats) {
     columns = list(
       season = colDef(
         name = "Season",
-        maxWidth = 80,
+        minWidth = 55,
         align = "left"
       ),
       team_id = colDef(
         name = "Team",
-        maxWidth = 100,
+        minWidth = 60,
         cell = \(value) {
           if (value == "Combined")
             "Combined"
@@ -206,19 +208,20 @@ battingStatsRctbl <- function(stats) {
       stolen_bases = colDef(name = "SB"),
       caught_stealing = colDef(name = "CS"),
       avg = colDef(name = "AVG",
-                   maxWidth = 80),
+                   minWidth = 55),
       obp = colDef(name = "OBP",
-                   maxWidth = 80),
+                   minWidth = 55),
       slg = colDef(name = "SLG",
-                   maxWidth = 80),
+                   minWidth = 55),
       ops = colDef(name = "OPS",
-                   maxWidth = 80)
+                   minWidth = 55)
     ),
     compact = TRUE,
-    style = list(fontFamily = gt::google_font("Fira Mono")),
+    style = list(fontFamily = gt::google_font("Fira Mono"),
+                 maxWidth = 1600),
     pagination = FALSE,
     defaultColDef = colDef(
-      maxWidth = 60,
+      minWidth = 40,
       align = "center",
       na = "0"
     )
@@ -268,7 +271,6 @@ pitchingLogsRctbl <- function(logs) {
         name = "Date",
         align = "left",
         minWidth = 100,
-        maxWidth = 110,
         defaultSortOrder = "asc"
       ),
       home = colDef(show = FALSE),
@@ -276,7 +278,7 @@ pitchingLogsRctbl <- function(logs) {
                        cell = \(value) {
                          abr[team_id == value, team]
                        },
-                       maxWidth = 60),
+                       minWidth = 60),
       opponent_id = colDef(
         name = "Opponent",
         cell = \(value, index) {
@@ -287,14 +289,14 @@ pitchingLogsRctbl <- function(logs) {
             paste0("@", val)
           }
         },
-        maxWidth = 100
+        minWidth = 90
       ),
       games_started = colDef(name = "GS"),
       wins = colDef(name = "W"),
       losses = colDef(name = "L"),
       saves = colDef(name = "SV"),
       holds = colDef(name = "HLD",
-                     maxWidth = 50),
+                     minWidth = 45),
       innings_pitched = colDef(name = "IP",
                                cell = function(value) {
                                  complete <- substr(value, 1, 1)
@@ -312,25 +314,25 @@ pitchingLogsRctbl <- function(logs) {
       base_on_balls = colDef(name = "BB"),
       strike_outs = colDef(name = "SO"),
       walks_per9inn = colDef(name = "BB/9",
-                             maxWidth = 60),
+                             minWidth = 45),
       strikeouts_per9inn = colDef(name = "SO/9",
-                                  maxWidth = 60),
+                                  minWidth = 45),
       home_runs_per9 = colDef(name = "HR/9",
-                              maxWidth = 60),
+                              minWidth = 45),
       era = colDef(name = "ERA",
-                   maxWidth = 60),
-      fip = colDef(name = "FIP",
-                   maxWidth = 60),
+                   minWidth = 40),
+      fip = colDef(name = "FIP"),
       game_score = colDef(name = "GSc")
     ),
     defaultColDef = colDef(
       align = "center",
       na = "0",
-      maxWidth = 45
+      minWidth = 35
     ),
     compact = TRUE,
     pagination = FALSE,
-    style = list(fontFamily = gt::google_font("Fira Mono"))
+    style = list(fontFamily = gt::google_font("Fira Mono"),
+                 maxWidth = 1600)
   )
 }
 
@@ -373,7 +375,7 @@ pitchingStatsRctbl <- function(stats) {
     dt,
     columns = list(
       season = colDef(name = "Season",
-                      maxWidth = 75),
+                      minWidth = 55),
       team_id = colDef(
         name = "Team",
         cell = \(value) {
@@ -383,7 +385,7 @@ pitchingStatsRctbl <- function(stats) {
             abr[team_id == value, team]
           }
         },
-        maxWidth = 100
+        minWidth = 60
       ),
       games_played = colDef(name = "G"),
       games_started = colDef(name = "GS"),
@@ -407,11 +409,12 @@ pitchingStatsRctbl <- function(stats) {
     defaultColDef = colDef(
       align = "center",
       na = "0",
-      maxWidth = 80
+      minWidth = 40
     ),
     compact = TRUE,
     pagination = FALSE,
-    style = list(fontFamily = gt::google_font("Fira Mono"))
+    style = list(fontFamily = gt::google_font("Fira Mono"),
+                 maxWidth = 1600)
   )
 }
 
@@ -457,25 +460,30 @@ standingsRctbl <- function(dt, division) {
           value)
         },
         name = name,
-        minWidth = 245,
-        maxWidth = 245
+        minWidth = 135,
+        align = "left"
       ),
       id = colDef(show = FALSE),
       wins = colDef(name = "Wins",
-                    align = "center"),
+                    align = "center",
+                    minWidth = 50),
       losses = colDef(name = "Losses",
-                      align = "center"),
+                      align = "center",
+                      minWidth = 50),
       pct = colDef(name = "PCT",
-                   align = "center"),
+                   align = "center",
+                   minWidth = 50),
       gb = colDef(name = "GB",
-                  align = "center"),
+                  align = "center",
+                  minWidth = 50),
       last10 = colDef(name = "L10",
-                      align = "center")
+                      align = "center",
+                      minWidth = 50)
     ),
     compact = TRUE,
-    style = list(fontFamily = gt::google_font("Fira Mono")),
-    sortable = FALSE,
-    defaultColDef = colDef(maxWidth = 95)
+    style = list(fontFamily = gt::google_font("Fira Mono"),
+                 maxWidth = 960),
+    sortable = FALSE
   )
 }
 

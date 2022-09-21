@@ -13,7 +13,7 @@ downloadHeadshot <- function(player_id, path) {
       image_read() |>
       image_crop(trim) |>
       image_fill(color = "white",
-                 fuzz = 10,
+                 fuzz = 8,
                  point = "+1+1")
 
 
