@@ -77,11 +77,6 @@ ui <- function(request) {
                               h6(
                                 uiOutput("summary") |> withSpinner(color = "white")
                               ),
-                              div(id = "_stat_select",
-                                  selectizeInput("stat_search",
-                                                 choices = NULL,
-                                                 multiple = FALSE,
-                                                 label = NULL)),
                               div(id = "_plot",
                                   style = "margin-left: -35px",
                                   plotlyOutput("plot",
