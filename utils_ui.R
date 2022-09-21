@@ -502,8 +502,7 @@ standingsRctbl <- function(dt, division) {
     ),
     compact = FALSE,
     style = list(fontFamily = gt::google_font("Fira Mono"),
-                 maxWidth = 960,
-                 maxHeight = 343),
+                 maxWidth = 960),
     sortable = FALSE
   )
 }
