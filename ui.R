@@ -8,10 +8,10 @@ ui <- function(request) {
   tagList(
     # Ugly hack for now. Will remove when I fix the Plot flashing an error
     # looking for the wrong stat when switching between hitters and pitchers.
-    tags$style(type="text/css",
-               ".shiny-output-error { visibility: hidden; }",
-               ".shiny-output-error:before { visibility: hidden; }"
-    ),
+    #tags$style(type="text/css",
+      #         ".shiny-output-error { visibility: hidden; }",
+     #          ".shiny-output-error:before { visibility: hidden; }"
+    #),
 
     # Leave this function for adding external resources
     #golem_add_external_resources(),
@@ -84,16 +84,16 @@ ui <- function(request) {
                                            width = "275px") |>
                                     withSpinner(color = "white"))),
                           div(id = "controls",
+                              selectizeInput("stat_search",
+                                             choices = NULL,
+                                             multiple = FALSE,
+                                             label = NULL),
                               chooseSliderSkin("Flat", color = "Maroon"),
                               sliderInput("rolling_window",
                                           "Smoothness",
                                           min = 1,
                                           max = 30,
-                                          value = 6)),
-                          selectizeInput("stat_search",
-                                         choices = NULL,
-                                         multiple = FALSE,
-                                         label = NULL)),
+                                          value = 6))),
                    column(10,
                           align = "center",
                           tabsetPanel(
@@ -102,12 +102,12 @@ ui <- function(request) {
                               "Batting",
                               reactableOutput(
                                 "batting_logs",
-                                height = "225px",
+                                height = "auto",
                                 width = "100%") |> withSpinner(color = "#0DC5C1"),
                                 br(),
                                 reactableOutput(
                                   "batting_stats",
-                                  height = "225px",
+                                  height = "auto",
                                   width = "100%"
                                 ) |> withSpinner(color = "white")
                               ),
@@ -115,12 +115,12 @@ ui <- function(request) {
                               "Pitching",
                               reactableOutput(
                                 "pitching_logs",
-                                height = "225px",
+                                height = "auto",
                                 width = "100%") |> withSpinner(color = "#0DC5C1"),
                               br(),
                               reactableOutput(
                                 "pitching_stats",
-                                height = "225px",
+                                height = "auto",
                                 width = "100%"
                               ) |> withSpinner(color = "white")
                               )
