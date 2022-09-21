@@ -12,6 +12,7 @@ library(shinyWidgets)
 library(futile.logger)
 library(utils)
 library(shinycssloaders)
+library(shinyjs)
 
 source("standings.R")
 source("utils_helpers.R")
