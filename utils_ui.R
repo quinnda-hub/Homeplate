@@ -264,6 +264,14 @@ pitchingLogsRctbl <- function(logs) {
     )] |>
     ERA()
 
+  # Pretty printing
+  for (col in c("era", "fip"))
+    set(dt,
+        j = col,
+        value = format(dt[[col]],
+                       digits = 2,
+                       nsmall = 2))
+
   reactable::reactable(
     dt,
     columns = list(
@@ -370,6 +378,14 @@ pitchingStatsRctbl <- function(stats) {
       era,
       fip
     )]
+
+  # Pretty printing
+  for (col in c("era", "fip"))
+    set(dt,
+        j = col,
+        value = format(dt[[col]],
+                       digits = 2,
+                       nsmall = 2))
 
   reactable::reactable(
     dt,
