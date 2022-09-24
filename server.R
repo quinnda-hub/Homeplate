@@ -98,7 +98,7 @@ server <- function(input, output, session) {
 
     pos <- global_vals$player_info()[id == input$player_search, primary_position]
 
-    choices <- if (pos == "Pitcher") {
+    choices <- if (input$stats == "Pitching") {
       c("ERA", "FIP", "Game Score", "Innings Pitched")
     } else {
       c("AVG", "OBP", "SLG", "OPS")
@@ -109,6 +109,11 @@ server <- function(input, output, session) {
       server = FALSE,
       choices = choices
     )
+
+    val <- if (input$stats == "Pitching") 3 else 6
+    max <- if (input$stats == "Pitching") 14 else 30
+
+    updateSliderInput(session, "rolling_window", value = val, max = max)
   })
 
   # Six standings tables for each division.
@@ -190,8 +195,6 @@ server <- function(input, output, session) {
   output$plot <- renderPlotly({
     req(input$player_search, input$stat_search)
 
-    pos <- global_vals$player_info()[id == input$player_search, primary_position]
-
     stat <- if (input$stat_search == "Innings Pitched") {
       "innings_pitched"
     } else if (input$stat_search == "Game Score") {
@@ -200,7 +203,7 @@ server <- function(input, output, session) {
       tolower(input$stat_search)
     }
 
-    if (pos == "Pitcher") {
+    if (input$stats == "Pitching") {
       plogs <- global_vals$pitching_logs()
       pitchingLogsPlot(plogs[player_id == input$player_search], stat, input$rolling_window)
     } else {
@@ -219,13 +222,9 @@ server <- function(input, output, session) {
     position <- global_vals$active_players()[player_id == input$player_search, position]
 
     selection <- if (position == "Pitcher") "Pitching" else "Batting"
-    val <- if (position == "Pitcher") 3 else 6
-    max <- if (position == "Pitcher") 14 else 30
 
     updateTabsetPanel(session, "stats",
                       selected = selection)
-
-    updateSliderInput(session, "rolling_window", value = val, max = max)
   })
 
   observeEvent(input$player_search, {
