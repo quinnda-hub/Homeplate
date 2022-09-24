@@ -226,6 +226,14 @@ server <- function(input, output, session) {
                       selected = selection)
 
     updateSliderInput(session, "rolling_window", value = val, max = max)
-
   })
+
+  observeEvent(input$player_search, {
+    if (input$player_search == "") {
+      hide("controls")
+    } else {
+      delay(500, show("controls"))
+    }
+  })
+
 }
