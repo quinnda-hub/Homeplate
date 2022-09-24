@@ -238,7 +238,9 @@ gameLogs <- function(playerId, season, group = "hitting") {
         season = season,
         group = group) |>
     rbindlist(fill = TRUE) |> janitor::clean_names()
+
   logs[, date := as.Date(date)]
+
   for (col in names(logs))
     set(logs,
         i = which(logs[[col]] %in% c(".---", "-.--")),
@@ -250,5 +252,6 @@ gameLogs <- function(playerId, season, group = "hitting") {
                  innings_pitched = convertInningsPitched(innings_pitched))]
     logs <- FIP(logs)
   }
-  logs[]
+
+  logs[date < Sys.Date()]
 }
