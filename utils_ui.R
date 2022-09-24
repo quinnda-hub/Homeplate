@@ -60,14 +60,15 @@ battingLogsRctbl <- function(logs) {
                        digits = 3,
                        nsmall = 3))
 
+  setorder(dt, -date)
+
   reactable::reactable(
     dt,
     columns = list(
       date = colDef(
         name = "Date",
         align = "left",
-        minWidth = 100,
-        defaultSortOrder = "asc"
+        minWidth = 100
       ),
       team_id = colDef(
         cell = \(value) {
@@ -274,14 +275,15 @@ pitchingLogsRctbl <- function(logs) {
                        digits = 2,
                        nsmall = 2))
 
+  setorder(dt, -date)
+
   reactable::reactable(
     dt,
     columns = list(
       date = colDef(
         name = "Date",
         align = "left",
-        minWidth = 100,
-        defaultSortOrder = "asc"
+        minWidth = 100
       ),
       home = colDef(show = FALSE),
       team_id = colDef(name = "Team",
