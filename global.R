@@ -20,5 +20,5 @@ source("ui.R")
 source("stats.R")
 source("teams.R")
 source("players.R")
-source("fct_helpers.R")
 source("utils_ui.R")
+# source("etl.R") # Run the etl script at start up.

@@ -9,70 +9,41 @@ dh <- memoise(downloadHeadshot, cache = cf)
 global_vals <-
   reactiveValues(
     standings = getStandings(format(Sys.Date(), "%Y")),
-    active_players = reactivePoll(
+    active_players = reactiveFileReader(
       6e4,
       session = NULL,
-      checkFunc = function() {
-        Sys.Date()
-      },
-      valueFunc = function() {
-        teamIds() |>
-          getRoster()
-      }
+      filePath = "www/data/active_players.rds",
+      readFunc = readRDS
     ),
-    player_info = reactivePoll(
+    player_info = reactiveFileReader(
       6e4,
       session = NULL,
-      checkFunc = function() {
-        Sys.Date()
-      },
-      valueFunc = function() {
-        global_vals$active_players()$player_id |> playerInfo()
-      }
+      filePath = "www/data/player_info.rds",
+      readFunc = readRDS
     ),
-    batting_logs = reactivePoll(
+    batting_logs = reactiveFileReader(
       6e4,
       session = NULL,
-      checkFunc = function() {
-        Sys.Date()
-      },
-      valueFunc = function() {
-        global_vals$active_players()$player_id |>
-          gameLogs(format(Sys.Date(), "%Y"))
-      }
+      filePath = "www/data/batting_logs.rds",
+      readFunc = readRDS
     ),
-    batting_stats = reactivePoll(
+    batting_stats = reactiveFileReader(
       6e4,
       session = NULL,
-      checkFunc = function() {
-        Sys.Date()
-      },
-      valueFunc = function() {
-        global_vals$active_players()$player_id |>
-          yearStats()
-      }
+      filePath = "www/data/batting_stats.rds",
+      readFunc = readRDS
     ),
-    pitching_logs = reactivePoll(
+    pitching_logs = reactiveFileReader(
       6e4,
       session = NULL,
-      checkFunc = function() {
-        Sys.Date()
-      },
-      valueFunc = function() {
-        global_vals$active_players()$player_id |>
-          gameLogs(format(Sys.Date(), "%Y"), "pitching")
-      }
+      filePath = "www/data/pitching_logs.rds",
+      readFunc = readRDS
     ),
-    pitching_stats = reactivePoll(
+    pitching_stats = reactiveFileReader(
       6e4,
       session = NULL,
-      checkFunc = function() {
-        Sys.Date()
-      },
-      valueFunc = function() {
-        global_vals$active_players()$player_id |>
-          yearStats("pitching")
-      }
+      filePath = "www/data/pitching_stats.rds",
+      readFunc = readRDS
     )
   )
 

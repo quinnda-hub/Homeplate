@@ -13,7 +13,7 @@ downloadHeadshot <- function(player_id, path) {
       image_read() |>
       image_crop(trim) |>
       image_fill(color = "white",
-                 fuzz = 8,
+                 fuzz = 9,
                  point = "+1+1")
 
 
@@ -25,8 +25,6 @@ downloadHeadshot <- function(player_id, path) {
   url |> trimBackground() |> image_write(path)
 }
 
-
-
 # this function will download a logo for a given team
 downloadLogo <- function(team_id) {
   paste0("https://www.mlbstatic.com/team-logos/", team_id, ".svg") |>
@@ -35,8 +33,11 @@ downloadLogo <- function(team_id) {
 
 searchList <- function(dt) {
   dt <- dt[!duplicated(player_id), .(player_id, name)]
+
   v <- dt$player_id
+
   names(v) <- dt$name
+
   v
 }
 
@@ -75,4 +76,11 @@ retry <- function(expr, isError=function(x) "try-error" %in% class(x), maxErrors
     retval = try(eval(expr))
   }
   return(retval)
+}
+
+GUTS <- function() {
+  "https://www.fangraphs.com/guts.aspx?type=cn" |>
+    rvest::read_html() |>
+    rvest::html_element(xpath = "//*[(@id = \"GutsBoard1_dg1_ctl00\")]") |>
+    rvest::html_table() |> as.data.table()
 }
