@@ -79,8 +79,6 @@ ui <- function(request) {
                         )),
                  column(
                    10,
-                   #br(),
-                   #br(),
                    align = "center",
                    div(
                      id = "header",
