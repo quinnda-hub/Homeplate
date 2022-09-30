@@ -13,10 +13,6 @@ ui <- function(request) {
                ".shiny-output-error { visibility: hidden; }",
                ".shiny-output-error:before { visibility: hidden; }"
     ),
-
-    # Leave this function for adding external resources
-    #golem_add_external_resources(),
-    # Your application UI logic
     navbarPage(
       title = "Homeplate",
       theme = bslib::bs_theme(
@@ -44,88 +40,85 @@ ui <- function(request) {
                                  reactableOutput("nl_west")))
                )),
       tabPanel("Player Stats",
-               fluidPage(
-                 fluidRow(
-                   column(2,
-                          align = "center",
+               fluidPage(fluidRow(
+                 column(2,
+                        align = "center",
+                        div(
+                          id = "headshot",
+                          imageOutput("head_shot",
+                                      inline = TRUE),
                           div(
-                            id = "headshot",
-                            imageOutput("head_shot",
-                                        inline = TRUE)
-                          )),
-                   column(10,
-                          br(),
-                          br(),
-                          align = "center",
-                          div(
-                            id = "header",
-                            labeledInput(
-                              "player",
-                              "Search for a player:",
-                              selectizeInput(
-                                "player_search",
-                                choices = NULL,
-                                multiple = FALSE,
-                                label = NULL
-                              )
+                            id = "_summary",
+                            h6(uiOutput("summary")),
+                            div(
+                              id = "_plot",
+                              style = "margin-left: -35px",
+                              plotlyOutput("plot",
+                                           height = "180px",
+                                           width = "275px")
                             )
-                          ))
-                 ),
-                 fluidRow(
-                   column(2,
-                          align = "center",
-                          div(id = "_summary",
-                              h6(
-                                uiOutput("summary")
-                              ),
-                              div(id = "_plot",
-                                  style = "margin-left: -35px",
-                                  plotlyOutput("plot",
-                                               height = "180px",
-                                               width = "275px"))),
-                          div(id = "controls",
-                              selectizeInput("stat_search",
-                                             choices = NULL,
-                                             multiple = FALSE,
-                                             label = NULL),
-                              chooseSliderSkin("Flat", color = "Maroon"),
-                              sliderInput("rolling_window",
-                                          "Smoothness",
-                                          min = 1,
-                                          max = 30,
-                                          value = 6))),
-                   column(10,
-                          align = "center",
-                          tabsetPanel(
-                            id = "stats",
-                            tabPanel(
-                              "Batting",
-                              reactableOutput(
-                                "batting_logs",
-                                height = "auto",
-                                width = "100%") |> withSpinner(color = "#0DC5C1"),
-                              br(),
-                              reactableOutput(
-                                "batting_stats",
-                                height = "auto",
-                                width = "100%"
-                              ) |> withSpinner(color = "white")
+                          ),
+                          div(
+                            id = "controls",
+                            selectizeInput(
+                              "stat_search",
+                              choices = NULL,
+                              multiple = FALSE,
+                              label = NULL
                             ),
-                            tabPanel(
-                              "Pitching",
-                              reactableOutput(
-                                "pitching_logs",
-                                height = "auto",
-                                width = "100%") |> withSpinner(color = "#0DC5C1"),
-                              br(),
-                              reactableOutput(
-                                "pitching_stats",
-                                height = "auto",
-                                width = "100%"
-                              )
+                            chooseSliderSkin("Flat", color = "Maroon"),
+                            sliderInput(
+                              "rolling_window",
+                              "Smoothness",
+                              min = 1,
+                              max = 30,
+                              value = 6
                             )
                           )
+
+                        )),
+                 column(
+                   10,
+                   #br(),
+                   #br(),
+                   align = "center",
+                   div(
+                     id = "header",
+                     labeledInput(
+                       "player",
+                       "Search for a player:",
+                       selectizeInput(
+                         "player_search",
+                         choices = NULL,
+                         multiple = FALSE,
+                         label = NULL
+                       )
+                     )
+                   ),
+                   tabsetPanel(
+                     id = "stats",
+                     tabPanel(
+                       "Batting",
+                       reactableOutput("batting_logs",
+                                       height = "auto",
+                                       width = "100%") |> withSpinner(color = "#0DC5C1"),
+                       br(),
+                       reactableOutput("batting_stats",
+                                       height = "auto",
+                                       width = "100%") |> withSpinner(color = "white")
+                     ),
+                     tabPanel(
+                       "Pitching",
+                       reactableOutput("pitching_logs",
+                                       height = "auto",
+                                       width = "100%") |> withSpinner(color = "#0DC5C1"),
+                       br(),
+                       reactableOutput("pitching_stats",
+                                       height = "auto",
+                                       width = "100%")
+                     )
                    )
-                 ))
-      )
-    ))}
+                 )
+               )))
+    )
+  )}
