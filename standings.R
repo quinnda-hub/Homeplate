@@ -13,9 +13,10 @@
         wins <- k[["wins"]];
         losses <- k[["losses"]];
         w10 <- k[["records"]][["splitRecords"]][[9]][["wins"]];
-        l10 <- k[["records"]][["splitRecords"]][[9]][["losses"]]
+        l10 <- k[["records"]][["splitRecords"]][[9]][["losses"]];
+        gb <- k[["gamesBack"]]
         data.table(team = team, id = id, wins = wins, losses = losses,
-                   last10 = paste0(w10, "-", l10))
+                   last10 = paste0(w10, "-", l10), gb = gb)
       }, simplify = FALSE) |> rbindlist()
     }, simplify = FALSE) |> rbindlist()
   }) |> rbindlist()
@@ -27,6 +28,7 @@ getStandings <- function(season) {
               format(digits = 3, nsmall = 3)][]
 }
 
+# Deprecated
 .gb <- function(dt) {
   div <- copy(dt)
   div <- dt[order(-frank(wins))]

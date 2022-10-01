@@ -463,7 +463,7 @@ standingsRctbl <- function(dt, division) {
     stop("Please input valid division")
   }
 
-  standings <- .gb(dt)
+  standings <- dt
   setcolorder(standings, c("team", "id", "wins", "losses", "pct", "gb", "last10"))
 
   reactable(
