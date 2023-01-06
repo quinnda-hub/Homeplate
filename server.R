@@ -8,7 +8,7 @@ dh <- memoise(downloadHeadshot, cache = cf)
 # Contains all the values that should be shared across sessions.
 global_vals <-
   reactiveValues(
-    standings = getStandings(format(Sys.Date(), "%Y")),
+    standings = getStandings(getCurrentSeason()),
     active_players = reactiveFileReader(
       6e4,
       session = NULL,
@@ -51,7 +51,7 @@ server <- function(input, output, session) {
   # Update the standings.
   observe({
     invalidateLater(3e5, session = NULL)
-    global_vals$standings <- getStandings(format(Sys.Date(), "%Y"))
+    global_vals$standings <- getStandings(getCurrentSeason())
   })
 
   # Update the player search.

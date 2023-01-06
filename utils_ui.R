@@ -564,7 +564,7 @@ battingLogsPlot <- function(logs, stat, n) {
            toImageButtonOptions = list(format = "png",
                                        height = 1080,
                                        width = 1920,
-                                       scale = 4,
+                                       scale = 3,
                                        filename = head(dt$name, 1)),
            displaylogo = FALSE)
 
@@ -614,7 +614,7 @@ pitchingLogsPlot <- function(logs, stat, n) {
            toImageButtonOptions = list(format = "png",
                                        height = 1080,
                                        width = 1920,
-                                       scale = 4,
+                                       scale = 3,
                                        filename = head(dt$name, 1)),
            displaylogo = FALSE)
 

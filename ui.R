@@ -113,7 +113,7 @@ ui <- function(request) {
                        br(),
                        reactableOutput("pitching_stats",
                                        height = "auto",
-                                       width = "100%")
+                                       width = "100%") |> withSpinner(color = "white")
                      )
                    )
                  )

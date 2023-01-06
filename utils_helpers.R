@@ -84,3 +84,11 @@ GUTS <- function() {
     rvest::html_element(xpath = "//*[(@id = \"GutsBoard1_dg1_ctl00\")]") |>
     rvest::html_table() |> as.data.table()
 }
+
+getCurrentSeason <- function() {
+  if (format(Sys.Date(), "%m") == "04") {
+    format(Sys.Date(), "%Y")
+  } else {
+    as.integer(format(Sys.Date(), "%Y")) - 1
+  }
+}
