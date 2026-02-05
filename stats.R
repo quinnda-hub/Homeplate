@@ -48,9 +48,9 @@ convertInningsPitched <- function(ip) {
 FIP <- function(stats) {
   guts <- retry(GUTS())
   dt <-
-    merge(stats[, season := as.integer(season)], guts[, .(Season, cFIP)],
+    merge(stats[, season := as.integer(season)], guts[, .(season, cFIP)],
           by.x = "season",
-          by.y = "Season",
+          by.y = "season",
           all.x = TRUE)
   dt[, fip := ((((13 * home_runs) + (
     3 * (base_on_balls + hit_by_pitch)
@@ -228,7 +228,7 @@ yearStats <- function(playerId, group = "hitting") {
                      simplify = FALSE) |> rbindlist()
   }
 
-  sapply(players[["people"]], aux, simplify = FALSE) |> rbindlist()
+  sapply(players[["people"]], aux, simplify = FALSE) |> rbindlist(fill = TRUE)
 }
 
 gameLogs <- function(playerId, season, group = "hitting") {
@@ -239,7 +239,7 @@ gameLogs <- function(playerId, season, group = "hitting") {
         group = group) |>
     rbindlist(fill = TRUE) |> janitor::clean_names()
 
-  logs[, date := as.Date(date)]
+  logs[, "date" := as.Date(date)]
 
   for (col in names(logs))
     set(logs,
@@ -255,3 +255,5 @@ gameLogs <- function(playerId, season, group = "hitting") {
 
   logs[date < Sys.Date()]
 }
+
+

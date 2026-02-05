@@ -16,10 +16,10 @@ saveRDS(active_players, "www/data/active_players.rds")
 
 saveRDS(active_players$player_id |> playerInfo(), "www/data/player_info.rds")
 
-saveRDS(active_players$player_id |> gameLogs(format(Sys.Date(), "%Y")),
+saveRDS(active_players$player_id |> gameLogs(getCurrentSeason()),
         "www/data/batting_logs.rds")
 
-saveRDS(active_players$player_id |> gameLogs(format(Sys.Date(), "%Y"), "pitching"),
+saveRDS(active_players$player_id |> gameLogs(getCurrentSeason(), "pitching"),
         "www/data/pitching_logs.rds")
 
 saveRDS(active_players$player_id |> yearStats(), "www/data/batting_stats.rds")

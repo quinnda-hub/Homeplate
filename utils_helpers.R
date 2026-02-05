@@ -78,11 +78,22 @@ retry <- function(expr, isError=function(x) "try-error" %in% class(x), maxErrors
   return(retval)
 }
 
-GUTS <- function() {
-  "https://www.fangraphs.com/guts.aspx?type=cn" |>
-    rvest::read_html() |>
-    rvest::html_element(xpath = "//*[(@id = \"GutsBoard1_dg1_ctl00\")]") |>
-    rvest::html_table() |> as.data.table()
+GUTS <- function ()
+{
+  tryCatch(expr = {
+    guts_table <- "http://www.fangraphs.com/guts.aspx?type=cn" |>
+      xml2::read_html() |>
+      rvest::html_element(xpath = '//*[@id="content"]/div[3]/div[2]/div/div/div[1]/table/tbody') |>
+      rvest::html_table() |> setNames(c("season", "lg_woba",
+                                         "woba_scale", "wBB", "wHBP", "w1B", "w2B", "w3B",
+                                         "wHR", "runSB", "runCS", "lg_r_pa", "lg_r_w", "cFIP"))
+    guts_table <- guts_table |> make_baseballr_data("GUTS data from FanGraphs.com",
+                                                     Sys.time())
+  }, error = function(e) {
+    message(glue::glue("{Sys.time()}: Invalid arguments or no GUTS data available!"))
+  }, finally = {
+  })
+  return(as.data.table(guts_table))
 }
 
 getCurrentSeason <- function() {
