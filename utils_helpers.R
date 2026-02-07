@@ -78,7 +78,7 @@ retry <- function(expr, isError=function(x) "try-error" %in% class(x), maxErrors
   return(retval)
 }
 
-GUTS <- function() {
+GUTS_live <- function() {
   guts_table <- NULL
 
   out <- tryCatch({
@@ -97,6 +97,10 @@ GUTS <- function() {
   })
 
   out
+}
+
+GUTS_cache <- function() {
+  readRDS("www/data/guts.rds")
 }
 
 getCurrentSeason <- function() {

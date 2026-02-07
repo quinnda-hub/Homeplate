@@ -46,7 +46,7 @@ convertInningsPitched <- function(ip) {
 
 # These functions will calculate ERA and FIP on a game by game basis.
 FIP <- function(stats) {
-  guts <- retry(GUTS())
+  guts <- GUTS_cache()
   dt <-
     merge(stats[, season := as.integer(season)], guts[, .(season, cFIP)],
           by.x = "season",
