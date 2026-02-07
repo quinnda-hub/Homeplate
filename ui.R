@@ -20,24 +20,21 @@ ui <- function(request) {
         fg = "black",
         primary = "Maroon",
         base_font = font_google("Montserrat"),
-        version = 4
+        version = 5
       ),
       inverse = TRUE,
       id = "home",
       tabPanel("Standings",
                fluidPage(
-                 fluidRow(column(6,
-                                 reactableOutput("al_east")),
-                          column(6,
-                                 reactableOutput("nl_east"))),
-                 fluidRow(column(6,
-                                 reactableOutput("al_central")),
-                          column(6,
-                                 reactableOutput("nl_central"))),
-                 fluidRow(column(6,
-                                 reactableOutput("al_west")),
-                          column(6,
-                                 reactableOutput("nl_west")))
+                 bslib::layout_column_wrap(
+                   width = 1/2,
+                   reactableOutput("al_east"),
+                   reactableOutput("nl_east"),
+                   reactableOutput("al_central"),
+                   reactableOutput("nl_central"),
+                   reactableOutput("al_west"),
+                   reactableOutput("nl_west"),
+                 )
                )),
       tabPanel("Player Stats",
                fluidPage(fluidRow(
