@@ -137,7 +137,7 @@ battingLogsRctbl <- function(logs) {
     style = list(fontFamily = gt::google_font("Fira Mono"),
                  width = "100%",
                  maxWidth = "none",
-                 height = "27.8vh"),
+                 height = "100%"),
     pagination = FALSE
   )
 }
@@ -222,7 +222,7 @@ battingStatsRctbl <- function(stats) {
     compact = TRUE,
     style = list(fontFamily = gt::google_font("Fira Mono"),
                  maxWidth = "none",
-                 height = "27.8vh",
+                 height = "100%",
                  width = "100%"),
     pagination = FALSE,
     defaultColDef = colDef(
@@ -348,7 +348,7 @@ pitchingLogsRctbl <- function(logs) {
     style = list(fontFamily = gt::google_font("Fira Mono"),
                  width = "100%",
                  maxWidth = "none",
-                 height = "27.8vh")
+                 height = "100%")
   )
 }
 
@@ -440,7 +440,7 @@ pitchingStatsRctbl <- function(stats) {
     style = list(fontFamily = gt::google_font("Fira Mono"),
                  width = "100%",
                  maxWidth = "none",
-                 height = "27.8vh")
+                 height = "100%")
   )
 }
 
@@ -509,7 +509,8 @@ standingsRctbl <- function(dt, division) {
     compact = FALSE,
     style = list(fontFamily = gt::google_font("Fira Mono"),
                  width = "100%",
-                 maxWidth = "none"),
+                 maxWidth = "none",
+                 height = "100%"),
     sortable = FALSE
   )
 }

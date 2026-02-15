@@ -5,115 +5,194 @@
 #' @import shiny
 #' @noRd
 ui <- function(request) {
-  tagList(
-    useShinyjs(),
-    # Ugly hack for now. Will remove when I fix the Plot flashing an error
-    # looking for the wrong stat when switching between hitters and pitchers.
-    tags$style(type="text/css",
-               ".shiny-output-error { visibility: hidden; }",
-               ".shiny-output-error:before { visibility: hidden; }"
+  shiny::tagList(
+    shinyjs::useShinyjs(),
+
+    shiny::tags$head(
+      shiny::tags$style(shiny::HTML("
+        /* Hide transient Shiny errors (your hack) */
+        .shiny-output-error { visibility: hidden; }
+        .shiny-output-error:before { visibility: hidden; }
+
+        /* Make reactable stretch nicely inside containers */
+        .reactable { height: 100% !important; }
+
+        /* If you wrap outputs with withSpinner(), let wrappers stretch */
+        .shiny-spinner-output-container { height: 100%; }
+        .shiny-spinner-output-container > .load-container { height: 100%; }
+
+        /* ---------- Player Stats right side: fill viewport ---------- */
+        .player-right {
+          height: calc(100vh - 56px); /* tweak if navbar height differs */
+          display: flex;
+          flex-direction: column;
+          min-height: 0;
+        }
+
+        /* Wrapper around tabsetPanel */
+        .player-tabs {
+          flex: 1;
+          min-height: 0;
+        }
+
+        /* tabsetPanel renders a .tabbable with .tab-content inside it */
+        .player-tabs > .tabbable {
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          min-height: 0;
+        }
+
+        .player-tabs .tab-content {
+          flex: 1;
+          min-height: 0;
+        }
+
+        .player-tabs .tab-pane {
+          height: 100%;
+          min-height: 0;
+        }
+
+        /* ---------- 50/50 split inside each tab ---------- */
+        .split-rows {
+          height: 100%;
+          display: grid;
+          grid-template-rows: 1fr 1fr;
+          gap: 10px;
+          min-height: 0;
+        }
+        .split-rows > * { min-height: 0; }
+
+        /* Card-ish look without requiring bslib card features */
+        .panel-card {
+          border: 1px solid rgba(0,0,0,0.1);
+          border-radius: 0.5rem;
+          padding: 0.5rem;
+          background: white;
+          min-height: 0;
+        }
+      "))
     ),
-    navbarPage(
+
+    shiny::navbarPage(
       title = "Homeplate",
       theme = bslib::bs_theme(
         bg = "white",
         fg = "black",
         primary = "Maroon",
-        base_font = font_google("Montserrat"),
+        base_font = bslib::font_google("Montserrat"),
         version = 5
       ),
       inverse = TRUE,
       id = "home",
-      tabPanel("Standings",
-               fluidPage(
-                 bslib::layout_column_wrap(
-                   width = 1/2,
-                   reactableOutput("al_east"),
-                   reactableOutput("nl_east"),
-                   reactableOutput("al_central"),
-                   reactableOutput("nl_central"),
-                   reactableOutput("al_west"),
-                   reactableOutput("nl_west"),
-                 )
-               )),
-      tabPanel("Player Stats",
-               fluidPage(fluidRow(
-                 column(2,
-                        align = "center",
-                        div(
-                          id = "headshot",
-                          imageOutput("head_shot",
-                                      inline = TRUE),
-                          div(
-                            id = "_summary",
-                            h6(uiOutput("summary")),
-                            div(
-                              id = "_plot",
-                              style = "margin-left: -35px",
-                              plotlyOutput("plot",
-                                           height = "180px",
-                                           width = "275px")
-                            )
-                          ),
-                          div(
-                            id = "controls",
-                            selectizeInput(
-                              "stat_search",
-                              choices = NULL,
-                              multiple = FALSE,
-                              label = NULL
-                            ),
-                            chooseSliderSkin("Flat", color = "Maroon"),
-                            sliderInput(
-                              "rolling_window",
-                              "Smoothness",
-                              min = 1,
-                              max = 30,
-                              value = 6
-                            )
-                          )
 
-                        )),
-                 column(
-                   10,
-                   align = "center",
-                   div(
-                     id = "header",
-                     labeledInput(
-                       "player",
-                       "Search for a player:",
-                       selectizeInput(
-                         "player_search",
-                         choices = NULL,
-                         multiple = FALSE,
-                         label = NULL
-                       )
-                     )
-                   ),
-                   tabsetPanel(
-                     id = "stats",
-                     tabPanel(
-                       "Batting",
-                       reactableOutput("batting_logs",
-                                       height = "auto",
-                                       width = "100%") |> withSpinner(color = "#0DC5C1"),
-                       br(),
-                       reactableOutput("batting_stats",
-                                       height = "auto",
-                                       width = "100%") |> withSpinner(color = "white")
-                     ),
-                     tabPanel(
-                       "Pitching",
-                       reactableOutput("pitching_logs",
-                                       height = "auto",
-                                       width = "100%") |> withSpinner(color = "#0DC5C1"),
-                       br(),
-                       reactableOutput("pitching_stats",
-                                       height = "auto",
-                                       width = "100%") |> withSpinner(color = "white")
-                     )
-                   )
-                 )
-               )))
+      # ---------------- Standings ----------------
+      shiny::tabPanel(
+        "Standings",
+        shiny::fluidPage(
+          bslib::layout_column_wrap(
+            width = 1/2,
+            reactable::reactableOutput("al_east"),
+            reactable::reactableOutput("nl_east"),
+            reactable::reactableOutput("al_central"),
+            reactable::reactableOutput("nl_central"),
+            reactable::reactableOutput("al_west"),
+            reactable::reactableOutput("nl_west")
+          )
+        )
+      ),
+
+      # ---------------- Player Stats ----------------
+      shiny::tabPanel(
+        "Player Stats",
+        shiny::fluidPage(
+          shiny::fluidRow(
+            shiny::column(
+              2,
+              align = "center",
+              shiny::div(
+                id = "headshot",
+                shiny::imageOutput("head_shot", inline = TRUE),
+                shiny::div(
+                  id = "_summary",
+                  shiny::h6(shiny::uiOutput("summary")),
+                  shiny::div(
+                    id = "_plot",
+                    style = "margin-left: -35px",
+                    plotly::plotlyOutput("plot", height = "180px", width = "275px")
+                  )
+                ),
+                shiny::div(
+                  id = "controls",
+                  shiny::selectizeInput("stat_search", choices = NULL, multiple = FALSE, label = NULL),
+                  shinyWidgets::chooseSliderSkin("Flat", color = "Maroon"),
+                  shiny::sliderInput("rolling_window", "Smoothness", min = 1, max = 30, value = 6)
+                )
+              )
+            ),
+
+            shiny::column(
+              10,
+              align = "center",
+
+              shiny::div(
+                class = "player-right",
+
+                shiny::div(
+                  id = "header",
+                  labeledInput(
+                    "player",
+                    "Search for a player:",
+                    shiny::selectizeInput("player_search", choices = NULL, multiple = FALSE, label = NULL)
+                  )
+                ),
+
+                shiny::div(
+                  class = "player-tabs",
+                  shiny::tabsetPanel(
+                    id = "stats",
+
+                    shiny::tabPanel(
+                      "Batting",
+                      shiny::div(
+                        class = "split-rows",
+                        shiny::div(
+                          class = "panel-card",
+                          reactable::reactableOutput("batting_logs", height = "100%", width = "100%") |>
+                            shinycssloaders::withSpinner(color = "#0DC5C1")
+                        ),
+                        shiny::div(
+                          class = "panel-card",
+                          reactable::reactableOutput("batting_stats", height = "100%", width = "100%") |>
+                            shinycssloaders::withSpinner(color = "white")
+                        )
+                      )
+                    ),
+
+                    shiny::tabPanel(
+                      "Pitching",
+                      shiny::div(
+                        class = "split-rows",
+                        shiny::div(
+                          class = "panel-card",
+                          reactable::reactableOutput("pitching_logs", height = "100%", width = "100%") |>
+                            shinycssloaders::withSpinner(color = "#0DC5C1")
+                        ),
+                        shiny::div(
+                          class = "panel-card",
+                          reactable::reactableOutput("pitching_stats", height = "100%", width = "100%") |>
+                            shinycssloaders::withSpinner(color = "white")
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
     )
-  )}
+  )
+}
+

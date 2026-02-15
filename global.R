@@ -13,6 +13,8 @@ library(futile.logger)
 library(utils)
 library(shinycssloaders)
 library(shinyjs)
+library(gt)
+library(janitor)
 
 source("standings.R")
 source("utils_helpers.R")
