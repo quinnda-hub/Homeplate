@@ -47,13 +47,13 @@ global_vals <-
     )
   )
 
-server <- function(input, output, session) {
-  # Update the standings.
-  observe({
-    invalidateLater(3e5, session = NULL)
-    global_vals$standings <- getStandings(getCurrentSeason())
-  })
+# Update the standings.
+observe({
+  invalidateLater(3e5, session = NULL)
+  global_vals$standings <- getStandings(getCurrentSeason())
+})
 
+server <- function(input, output, session) {
   # Update the player search.
   observe({
     updateSelectizeInput(
