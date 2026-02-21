@@ -1,3 +1,10 @@
+statcastContact <- function(player_id, start_date, end_date) {
+  baseballr::statcast_search(start_date = start_date,
+                             end_date = end_date,
+                             playerid = player_id) |>
+    as.data.table()
+}
+
 make_field_shapes <- function(xr, yr,
                                      arc_frac = 0.96,
                                      infield_frac = 0.23,
@@ -82,6 +89,8 @@ make_field_shapes <- function(xr, yr,
 }
 
 plotContactEVAngle <- function(dt) {
+  balls_in_play <- dt[!is.na(launch_speed) & !is.na(launch_angle)]
+
   balls_in_play[, event_label := data.table::fifelse(is.na(events) | events == "", "In Play", events)]
 
   balls_in_play[, event_label := fifelse(events == "", "In Play", events)]

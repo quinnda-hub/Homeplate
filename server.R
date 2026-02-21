@@ -4,6 +4,8 @@ temp_dir <- "www/players"
 
 cf <- cache_disk(max_age = 24 * 60 * 60)
 dh <- memoise(downloadHeadshot, cache = cf)
+sc_cache <- cache_disk(max_age =  6 * 60 * 60)
+sc_contact <- memoise(statcastContact, cache = sc_cache)
 
 # Contains all the values that should be shared across sessions.
 global_vals <-
@@ -206,4 +208,134 @@ server <- function(input, output, session) {
     }
   })
 
+  contact_data_raw <- reactive({
+    req(input$stats == "Contact Lab",
+        input$player_search,
+        input$contact_dates)
+
+    tryCatch(
+      sc_contact(
+        input$player_search,
+        input$contact_dates[[1]],
+        input$contact_dates[[2]]
+      ),
+      error = function(e) {
+        data.table()
+      }
+    )
+  })
+
+  observeEvent(contact_data_raw(), {
+    dt <- contact_data_raw()
+
+    if (!nrow(dt)) {
+      updateSelectizeInput(session, "contact_pitch_type",
+                           choices = "All",
+                           selected = "All")
+      updateSelectizeInput(session, "contact_bb_type",
+                           choices = "All",
+                           selected = "All")
+      return()
+    }
+
+    updateSelectizeInput(
+      session,
+      "contact_pitch_type",
+      choices = c("All", sort(unique(dt$pitch_type))),
+      selected = "All"
+    )
+
+    updateSelectizeInput(
+      session,
+      "contact_bb_type",
+      choices = c("All", sort(unique(dt$bb_type))),
+      selected = "All"
+    )
+  })
+
+  contact_data <- reactive({
+    dt <- contact_data_raw()
+    if (!nrow(dt)) {
+      return(dt)
+    }
+
+    if (!is.null(input$contact_pitch_type) &&
+        input$contact_pitch_type != "All") {
+      dt <- dt[pitch_type == input$contact_pitch_type]
+    }
+
+    if (!is.null(input$contact_bb_type) &&
+        input$contact_bb_type != "All") {
+      dt <- dt[bb_type == input$contact_bb_type]
+    }
+
+    dt
+  })
+
+  output$contact_summary <- renderUI({
+    dt <- contact_data()
+
+    validate(
+      need(nrow(dt) > 0, "No Statcast contact data available for this range.")
+    )
+
+    balls_in_play <- dt[!is.na(launch_speed) & !is.na(launch_angle)]
+
+    validate(
+      need(nrow(balls_in_play) > 0, "No batted-ball data for the selected filters.")
+    )
+
+    hard_hit_rate <- mean(balls_in_play$launch_speed >= 95, na.rm = TRUE)
+    sweet_spot_rate <- mean(balls_in_play$launch_angle >= 8 &
+                              balls_in_play$launch_angle <= 32, na.rm = TRUE)
+
+    tags$div(
+      tags$h6("Contact snapshot"),
+      tags$ul(
+        tags$li(paste0("Batted balls: ", nrow(balls_in_play))),
+        tags$li(paste0("Avg EV: ",
+                       round(mean(balls_in_play$launch_speed, na.rm = TRUE), 1),
+                       " mph")),
+        tags$li(paste0("Avg LA: ",
+                       round(mean(balls_in_play$launch_angle, na.rm = TRUE), 1),
+                       "°")),
+        tags$li(paste0("Hard-hit rate: ",
+                       sprintf("%.1f%%", hard_hit_rate * 100))),
+        tags$li(paste0("Sweet-spot rate: ",
+                       sprintf("%.1f%%", sweet_spot_rate * 100)))
+      )
+    )
+  })
+
+  output$contact_ev_angle <- renderPlotly({
+    dt <- contact_data()
+
+    validate(
+      need(nrow(dt) > 0, "No Statcast contact data available for this range.")
+    )
+
+    balls_in_play <- dt[!is.na(launch_speed) & !is.na(launch_angle)]
+
+    validate(
+      need(nrow(balls_in_play) > 0, "No batted-ball data for the selected filters.")
+    )
+
+    plotContactEVAngle(dt)
+  })
+
+  output$contact_spray <- renderPlotly({
+    dt <- contact_data()
+
+    validate(
+      need(nrow(dt) > 0, "No Statcast contact data available for this range.")
+    )
+
+    balls_in_play <- dt[!is.na(hc_x) & !is.na(hc_y)]
+
+    validate(
+      need(nrow(balls_in_play) > 0, "No spray chart data for the selected filters.")
+    )
+
+    plotContactSprayChart(dt)
+  })
 }
