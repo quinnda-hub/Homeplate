@@ -69,7 +69,9 @@ server <- function(input, output, session) {
   observe({
     req(input$player_search)
 
-    pos <- global_vals$player_info()[id == input$player_search, primary_position]
+    if (identical(input$stats, "Contact Lab")) {
+      return()
+    }
 
     choices <- if (input$stats == "Pitching") {
       c("ERA", "FIP", "Game Score", "Innings Pitched")
@@ -77,15 +79,10 @@ server <- function(input, output, session) {
       c("AVG", "OBP", "SLG", "OPS")
     }
 
-    updateSelectizeInput(
-      inputId = "stat_search",
-      server = FALSE,
-      choices = choices
-    )
+    updateSelectizeInput(session, "stat_search", choices = choices, server = FALSE)
 
     val <- if (input$stats == "Pitching") 3 else 6
     max <- if (input$stats == "Pitching") 14 else 30
-
     updateSliderInput(session, "rolling_window", value = val, max = max)
   })
 
@@ -149,7 +146,7 @@ server <- function(input, output, session) {
         input$player_search,
         ".png"
       ),
-      contentType = "image/jpeg",
+      contentType = "image/png",
       width = 106,
       height = 160,
       alt = global_vals$active_players()[player_id == input$player_search, name]
@@ -192,12 +189,15 @@ server <- function(input, output, session) {
   observeEvent(input$player_search, {
     req(input$player_search)
 
-    position <- global_vals$active_players()[player_id == input$player_search, position]
+    # If user is currently on Contact Lab, don't override their tab choice
+    if (identical(isolate(input$stats), "Contact Lab")) {
+      return()
+    }
 
+    position <- global_vals$active_players()[player_id == input$player_search, position]
     selection <- if (position == "Pitcher") "Pitching" else "Batting"
 
-    updateTabsetPanel(session, "stats",
-                      selected = selection)
+    updateTabsetPanel(session, "stats", selected = selection)
   })
 
   observeEvent(input$player_search, {
@@ -290,7 +290,6 @@ server <- function(input, output, session) {
                               balls_in_play$launch_angle <= 32, na.rm = TRUE)
 
     tags$div(
-      tags$h6("Contact snapshot"),
       tags$ul(
         tags$li(paste0("Batted balls: ", nrow(balls_in_play))),
         tags$li(paste0("Avg EV: ",

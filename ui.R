@@ -71,6 +71,27 @@ ui <- function(request) {
           background: white;
           min-height: 0;
         }
+
+        /* ---------- Contact Lab layout ---------- */
+        .contact-layout {
+          height: 100%;
+          display: grid;
+          grid-template-columns: 320px 1fr; /* tweak sidebar width */
+          gap: 10px;
+          min-height: 0;
+        }
+
+        .contact-layout > * { min-height: 0; }
+
+        .contact-plots {
+          height: 100%;
+          display: grid;
+          grid-template-rows: 1fr 1fr;
+          gap: 10px;
+          min-height: 0;
+        }
+
+        .contact-plots > * { min-height: 0; }
       "))
     ),
 
@@ -183,42 +204,51 @@ ui <- function(request) {
                           reactable::reactableOutput("pitching_stats", height = "100%", width = "100%") |>
                             shinycssloaders::withSpinner(color = "white")
                         ),
-                        tabPanel(
-                          "Contact Lab",
-                          fluidRow(
-                            column(
-                              3,
-                              align = "left",
-                              dateRangeInput(
-                                "contact_dates",
-                                "Date range",
-                                start = Sys.Date() - 30,
-                                end = Sys.Date()
-                              ),
-                              selectizeInput(
-                                "contact_pitch_type",
-                                "Pitch type",
-                                choices = "All",
-                                multiple = FALSE
-                              ),
-                              selectizeInput(
-                                "contact_bb_type",
-                                "Batted-ball type",
-                                choices = "All",
-                                multiple = FALSE
-                              ),
-                              uiOutput("contact_summary")
-                            ),
-                            column(
-                              9,
-                              plotlyOutput("contact_ev_angle",
-                                           height = "340px",
-                                           width = "100%") |> withSpinner(color = "#0DC5C1"),
-                              br(),
-                              plotlyOutput("contact_spray",
-                                           height = "340px",
-                                           width = "100%") |> withSpinner(color = "#0DC5C1")
-                            )
+                      )
+                    ),
+                    shiny::tabPanel(
+                      "Contact Lab",
+                      shiny::div(
+                        class = "contact-layout",
+
+                        # Sidebar
+                        shiny::div(
+                          class = "panel-card",
+                          shiny::dateRangeInput(
+                            "contact_dates",
+                            "Date range",
+                            start = Sys.Date() - 30,
+                            end = Sys.Date()
+                          ),
+                          shiny::selectizeInput(
+                            "contact_pitch_type",
+                            "Pitch type",
+                            choices = "All",
+                            multiple = FALSE
+                          ),
+                          shiny::selectizeInput(
+                            "contact_bb_type",
+                            "Batted-ball type",
+                            choices = "All",
+                            multiple = FALSE
+                          ),
+                          shiny::uiOutput("contact_summary")
+                        ),
+
+                        # Plots (two card containers)
+                        shiny::div(
+                          class = "contact-plots",
+
+                          shiny::div(
+                            class = "panel-card",
+                            plotly::plotlyOutput("contact_ev_angle", height = "100%", width = "100%") |>
+                              shinycssloaders::withSpinner(color = "#0DC5C1")
+                          ),
+
+                          shiny::div(
+                            class = "panel-card",
+                            plotly::plotlyOutput("contact_spray", height = "100%", width = "100%") |>
+                              shinycssloaders::withSpinner(color = "white")
                           )
                         )
                       )
