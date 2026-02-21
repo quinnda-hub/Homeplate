@@ -15,6 +15,7 @@ library(shinycssloaders)
 library(shinyjs)
 library(gt)
 library(janitor)
+library(stringr)
 
 source("standings.R")
 source("utils_helpers.R")
