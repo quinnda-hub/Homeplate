@@ -184,7 +184,7 @@ plotContactSprayChart <- function(dt) {
   xr2 <- c(xr[1] - xpad, xr[2] + xpad)
   yr2 <- c(yr[1] - ypad, yr[2] + ypad)
 
-  field_shapes <- make_field_shapes_pretty(xr2, yr2)
+  field_shapes <- make_field_shapes(xr2, yr2)
 
   plot_ly(
     balls_in_play,
