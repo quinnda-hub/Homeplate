@@ -256,17 +256,17 @@ gameLogs <- function(playerId, season, group = "hitting") {
   logs[date < Sys.Date()]
 }
 
-playerSabermetrics <- function(playerId,
-                               season,
-                               group = c("hitting", "pitching"),
-                               sportId = 1,
-                               gameType = "R") {
-  stopifnot(length(playerId) == 1)
+playerSabermetricsOne <- function(player_id,
+                                  season,
+                                  group = c("hitting", "pitching"),
+                                  sportId = 1,
+                                  gameType = "R") {
+  stopifnot(length(player_id) == 1)
 
   group <- match.arg(group, several.ok = TRUE)
 
   fetch_one <- function(g) {
-    url <- sprintf("https://statsapi.mlb.com/api/v1/people/%s/stats", playerId)
+    url <- sprintf("https://statsapi.mlb.com/api/v1/people/%s/stats", player_id)
 
     resp <- httr::GET(
       url,
@@ -294,7 +294,7 @@ playerSabermetrics <- function(playerId,
 
     rows <- lapply(splits, function(s) {
       meta <- list(
-        player_id   = s$player$id %||% playerId,
+        player_id   = s$player$id %||% player_id,
         player_name = s$player$fullName %||% NA_character_,
         season      = s$season %||% as.character(season),
         group       = g,
@@ -325,4 +325,29 @@ playerSabermetrics <- function(playerId,
   out <- data.table::rbindlist(lapply(group, fetch_one), fill = TRUE)
   out[]
 }
+
+playerSabermetricsMany <- function(player_seasons_dt,
+                                   groups = c("hitting", "pitching"),
+                                   sportId = 1,
+                                   gameType = "R") {
+  stopifnot(data.table::is.data.table(player_seasons_dt))
+  stopifnot(all(c("id", "season") %in% names(player_seasons_dt)))
+
+  reqs <- unique(player_seasons_dt[, .(id, season)])
+  tasks <- reqs[, .(group = groups), by = .(id, season)]
+
+  data.table::rbindlist(
+    lapply(seq_len(nrow(tasks)), function(i) {
+      playerSabermetricsOne(
+        player_id = tasks$id[i],
+        season    = tasks$season[i],
+        group     = tasks$group[i],
+        sportId   = sportId,
+        gameType  = gameType
+      )
+    }),
+    fill = TRUE
+  )[]
+}
+
 
