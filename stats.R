@@ -256,4 +256,73 @@ gameLogs <- function(playerId, season, group = "hitting") {
   logs[date < Sys.Date()]
 }
 
+playerSabermetrics <- function(playerId,
+                               season,
+                               group = c("hitting", "pitching"),
+                               sportId = 1,
+                               gameType = "R") {
+  stopifnot(length(playerId) == 1)
+
+  group <- match.arg(group, several.ok = TRUE)
+
+  fetch_one <- function(g) {
+    url <- sprintf("https://statsapi.mlb.com/api/v1/people/%s/stats", playerId)
+
+    resp <- httr::GET(
+      url,
+      query = list(
+        stats = "sabermetrics",
+        group = g,
+        season = season,
+        sportId = sportId,
+        gameType = gameType
+      )
+    )
+
+    httr::stop_for_status(resp)
+    x <- httr::content(resp, as = "parsed", type = "application/json")
+
+    stats_list <- x$stats %||% list()
+    if (!length(stats_list)) {
+      return(data.table::data.table())
+    }
+
+    splits <- stats_list[[1]]$splits %||% list()
+    if (!length(splits)) {
+      return(data.table::data.table())
+    }
+
+    rows <- lapply(splits, function(s) {
+      meta <- list(
+        player_id   = s$player$id %||% playerId,
+        player_name = s$player$fullName %||% NA_character_,
+        season      = s$season %||% as.character(season),
+        group       = g,
+        team_id     = s$team$id %||% NA_integer_,
+        team        = s$team$name %||% NA_character_,
+        league_id   = s$league$id %||% NA_integer_,
+        league      = s$league$name %||% NA_character_,
+        game_type   = s$gameType %||% NA_character_
+      )
+
+      data.table::as.data.table(c(meta, s$stat))
+    })
+
+    dt <- data.table::rbindlist(rows, fill = TRUE)
+    dt <- janitor::clean_names(dt)
+
+    keep_chr <- c("player_name", "season", "group", "team", "league", "game_type")
+    num_cols <- setdiff(names(dt), keep_chr)
+    for (col in num_cols) {
+      if (is.character(dt[[col]])) {
+        suppressWarnings(data.table::set(dt, j = col, value = as.numeric(dt[[col]])))
+      }
+    }
+
+    dt[]
+  }
+
+  out <- data.table::rbindlist(lapply(group, fetch_one), fill = TRUE)
+  out[]
+}
 

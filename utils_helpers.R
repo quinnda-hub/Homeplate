@@ -110,3 +110,6 @@ getCurrentSeason <- function() {
     as.integer(format(Sys.Date(), "%Y")) - 1
   }
 }
+
+`%||%` <- function(a, b) if (!is.null(a)) a else b
+
