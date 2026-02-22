@@ -323,6 +323,12 @@ playerSabermetricsOne <- function(player_id,
   }
 
   out <- data.table::rbindlist(lapply(group, fetch_one), fill = TRUE)
+
+  out[, team_id := as.character(team_id)]
+  out[, `:=`(
+    team_id = fifelse(is.na(team_id), "Combined", team_id),
+    team    = fifelse(is.na(team_id), "Combined", team)
+  )]
   out[]
 }
 
