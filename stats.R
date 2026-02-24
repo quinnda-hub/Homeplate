@@ -164,6 +164,7 @@ yearStats <- function(playerId, group = "hitting") {
       players <- FIP(players)
     }
   }
+  players[, season := as.character(season)]
   players[]
 }
 
@@ -268,15 +269,19 @@ playerSabermetricsOne <- function(player_id,
   fetch_one <- function(g) {
     url <- sprintf("https://statsapi.mlb.com/api/v1/people/%s/stats", player_id)
 
-    resp <- httr::GET(
-      url,
+    resp <- httr::RETRY(
+      verb = "GET",
+      url  = url,
       query = list(
         stats = "sabermetrics",
         group = g,
         season = season,
         sportId = sportId,
         gameType = gameType
-      )
+      ),
+      times = 5,
+      pause_base = 0.5,
+      pause_cap = 8
     )
 
     httr::stop_for_status(resp)
@@ -327,7 +332,7 @@ playerSabermetricsOne <- function(player_id,
   out[, team_id := as.character(team_id)]
   out[, `:=`(
     team_id = fifelse(is.na(team_id), "Combined", team_id),
-    team    = fifelse(is.na(team_id), "Combined", team)
+    team    = fifelse(is.na(team), "Combined", team)
   )]
   out[]
 }
@@ -335,25 +340,32 @@ playerSabermetricsOne <- function(player_id,
 playerSabermetricsMany <- function(player_seasons_dt,
                                    groups = c("hitting", "pitching"),
                                    sportId = 1,
-                                   gameType = "R") {
+                                   gameType = "R",
+                                   sleep_s = 0.05) {
   stopifnot(data.table::is.data.table(player_seasons_dt))
   stopifnot(all(c("id", "season") %in% names(player_seasons_dt)))
 
   reqs <- unique(player_seasons_dt[, .(id, season)])
-  tasks <- reqs[, .(group = groups), by = .(id, season)]
+  data.table::setorder(reqs, id, season)
 
-  data.table::rbindlist(
-    lapply(seq_len(nrow(tasks)), function(i) {
-      playerSabermetricsOne(
-        player_id = tasks$id[i],
-        season    = tasks$season[i],
-        group     = tasks$group[i],
-        sportId   = sportId,
-        gameType  = gameType
+  out <- data.table::rbindlist(
+    lapply(seq_len(nrow(reqs)), function(i) {
+      if (sleep_s > 0) Sys.sleep(sleep_s)
+
+      tryCatch(
+        playerSabermetricsOne(
+          player_id = reqs$id[i],
+          season    = reqs$season[i],
+          group     = groups,
+          sportId   = sportId,
+          gameType  = gameType
+        ),
+        error = function(e) data.table::data.table()
       )
     }),
     fill = TRUE
-  )[]
-}
+  )
 
+  out[]
+}
 
