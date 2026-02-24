@@ -279,7 +279,7 @@ server <- function(input, output, session) {
       need(nrow(dt) > 0, "No Statcast contact data available for this range.")
     )
 
-    balls_in_play <- dt[!is.na(launch_speed) & !is.na(launch_angle)]
+    balls_in_play <- dt[type == "X"]
 
     validate(
       need(nrow(balls_in_play) > 0, "No batted-ball data for the selected filters.")
