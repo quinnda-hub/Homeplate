@@ -408,16 +408,20 @@ pitchingStatsRctbl <- function(stats) {
       home_runs_per_plate_appearance,
       babip,
       era,
-      fip
+      i.fip,
+      xfip,
+      era_minus,
+      war
     )]
 
   # Pretty printing
-  for (col in c("era", "fip"))
+  for (col in c("era", "i.fip", "xfip"))
     set(dt,
         j = col,
-        value = format(dt[[col]],
-                       digits = 2,
-                       nsmall = 2))
+        value = scales::label_number(accuracy = 0.01)(as.numeric(dt[[col]])))
+
+  dt[, era_minus := scales::label_number(accuracy = 3)(as.numeric(era_minus))]
+  dt[, war := scales::label_number(accuracy = 0.1)(as.numeric(war))]
 
   reactable::reactable(
     dt,
@@ -452,8 +456,10 @@ pitchingStatsRctbl <- function(stats) {
       ),
       babip = colDef(name = "BABIP"),
       era = colDef(name = "ERA"),
-      fip = colDef(name = "FIP")
-    ),
+      i.fip = colDef(name = "FIP"),
+      xfip = colDef(name = "xFIP"),
+      era_minus = colDef(name = "ERA-"),
+      war = colDef(name = "WAR")),
     defaultColDef = colDef(
       align = "center",
       na = "0",
