@@ -150,8 +150,12 @@ battingStatsRctbl <- function(stats) {
       value.name = "team_id"
     )
 
+  dt <- copy(stats)
+
+  dt[, def := fielding + positional]
+
   dt <-
-    stats[, .(
+    dt[, .(
       season,
       team_id,
       games_played,
@@ -169,16 +173,26 @@ battingStatsRctbl <- function(stats) {
       avg,
       obp,
       slg,
-      ops
+      ops,
+      woba,
+      w_rc_plus,
+      base_running,
+      def,
+      war
     )]
 
+  dt[, w_rc_plus := format(w_rc_plus, digits = 1)]
+
   # Pretty printing
-  for (col in c("avg", "obp", "slg", "ops"))
+  for (col in c("avg", "obp", "slg", "ops", "woba"))
     set(dt,
         j = col,
-        value = format(dt[[col]],
-                       digits = 3,
-                       nsmall = 3))
+        value = scales::label_number(accuracy = 0.001)(as.numeric(dt[[col]])))
+  for (col in c("base_running", "def", "war"))
+    set(dt,
+        j = col,
+        value = scales::label_number(accuracy = 0.1)(as.numeric(dt[[col]])))
+
 
   reactable::reactable(
     dt,
@@ -217,6 +231,16 @@ battingStatsRctbl <- function(stats) {
       slg = colDef(name = "SLG",
                    minWidth = 55),
       ops = colDef(name = "OPS",
+                   minWidth = 55),
+      woba = colDef(name = "wOBA",
+                   minWidth = 55),
+      w_rc_plus = colDef(name = "wRC+",
+                         minWidth = 55),
+      base_running = colDef(name = "BsR",
+                            minWidth = 55),
+      def = colDef(name = "Def",
+                        minWidth = 55),
+      war = colDef(name = "WAR",
                    minWidth = 55)
     ),
     compact = TRUE,
