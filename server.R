@@ -285,41 +285,53 @@ server <- function(input, output, session) {
       need(nrow(balls_in_play) > 0, "No batted-ball data for the selected filters.")
     )
 
+    avg_ev <- mean(balls_in_play$launch_speed, na.rm = TRUE)
+    avg_la <- mean(balls_in_play$launch_angle, na.rm = TRUE)
+    p90_ev <- as.numeric(stats::quantile(balls_in_play$launch_speed, probs = 0.9, na.rm = TRUE))
+
     hard_hit_rate <- mean(balls_in_play$launch_speed >= 95, na.rm = TRUE)
     sweet_spot_rate <- mean(balls_in_play$launch_angle >= 8 &
                               balls_in_play$launch_angle <= 32, na.rm = TRUE)
 
+    damage_zone_rate <- mean(
+      balls_in_play$launch_speed >= 95 &
+        balls_in_play$launch_angle >= 20 &
+        balls_in_play$launch_angle <= 40,
+      na.rm = TRUE
+    )
+    pop_rate <- mean(balls_in_play$launch_angle > 50, na.rm = TRUE)
+
     tags$div(
       tags$ul(
         tags$li(paste0("Batted balls: ", nrow(balls_in_play))),
-        tags$li(paste0("Avg EV: ",
-                       round(mean(balls_in_play$launch_speed, na.rm = TRUE), 1),
-                       " mph")),
-        tags$li(paste0("Avg LA: ",
-                       round(mean(balls_in_play$launch_angle, na.rm = TRUE), 1),
-                       "°")),
-        tags$li(paste0("Hard-hit rate: ",
-                       sprintf("%.1f%%", hard_hit_rate * 100))),
-        tags$li(paste0("Sweet-spot rate: ",
-                       sprintf("%.1f%%", sweet_spot_rate * 100)))
+        tags$li(paste0("Avg EV / LA: ", round(avg_ev, 1), " mph / ", round(avg_la, 1), "°")),
+        tags$li(paste0("90th pct EV: ", round(p90_ev, 1), " mph")),
+        tags$li(paste0("Hard-hit rate: ", sprintf("%.1f%%", hard_hit_rate * 100))),
+        tags$li(paste0("Sweet-spot rate: ", sprintf("%.1f%%", sweet_spot_rate * 100))),
+        tags$li(paste0("Damage-zone rate: ", sprintf("%.1f%%", damage_zone_rate * 100))),
+        tags$li(paste0("Pop-up rate (>50° LA): ", sprintf("%.1f%%", pop_rate * 100)))
+      ),
+      tags$small(
+        style = "color:#5f6368;",
+        "Benchmarks: hard-hit = 95+ mph, sweet-spot = 8-32° LA, damage zone = 95+ EV and 20-40° LA."
       )
     )
   })
 
-  output$contact_ev_angle <- renderPlotly({
+  output$contact_ev_density <- renderPlotly({
     dt <- contact_data()
 
     validate(
       need(nrow(dt) > 0, "No Statcast contact data available for this range.")
     )
 
-    balls_in_play <- dt[!is.na(launch_speed) & !is.na(launch_angle)]
+    balls_in_play <- dt[type == "X"]
 
     validate(
       need(nrow(balls_in_play) > 0, "No batted-ball data for the selected filters.")
     )
 
-    plotContactEVAngle(dt)
+    plotContactEVAngleDensity(balls_in_play)
   })
 
   output$contact_spray <- renderPlotly({
@@ -329,12 +341,12 @@ server <- function(input, output, session) {
       need(nrow(dt) > 0, "No Statcast contact data available for this range.")
     )
 
-    balls_in_play <- dt[!is.na(hc_x) & !is.na(hc_y)]
+    balls_in_play <- dt[type == "X"]
 
     validate(
       need(nrow(balls_in_play) > 0, "No spray chart data for the selected filters.")
     )
 
-    plotContactSprayChart(dt)
+    plotContactSprayChart(balls_in_play)
   })
 }

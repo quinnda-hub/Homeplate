@@ -241,7 +241,7 @@ ui <- function(request) {
 
                           shiny::div(
                             class = "panel-card",
-                            plotly::plotlyOutput("contact_ev_angle", height = "100%", width = "100%") |>
+                            plotly::plotlyOutput("contact_ev_density", height = "100%", width = "100%") |>
                               shinycssloaders::withSpinner(color = "#0DC5C1")
                           ),
 
