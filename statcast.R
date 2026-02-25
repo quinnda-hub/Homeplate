@@ -228,3 +228,123 @@ plotContactSprayChart <- function(dt) {
       hovermode = "closest"
     ) |> config(displayModeBar = FALSE)
 }
+
+plotContactEVAngleDensity <- function(dt) {
+  balls_in_play <- dt[!is.na(launch_speed) & !is.na(launch_angle)]
+
+  xr2 <- c(-80, 80)
+  yr2 <- c(30, 125)
+
+  nbin_x <- 24
+  nbin_y <- 22
+  bin_size_x <- diff(xr2) / nbin_x
+  bin_size_y <- diff(yr2) / nbin_y
+
+  density_max <- 0.025
+  density_ticks <- seq(0, density_max, by = 0.01)
+
+  plot_ly(
+    balls_in_play,
+    x = ~launch_angle,
+    y = ~launch_speed,
+    type = "histogram2d",
+    histnorm = "probability",
+    autobinx = FALSE,
+    autobiny = FALSE,
+    xbins = list(start = xr2[1], end = xr2[2], size = bin_size_x),
+    ybins = list(start = yr2[1], end = yr2[2], size = bin_size_y),
+    zauto = FALSE,
+    zmin = 0,
+    zmax = density_max,
+    colorscale = "YlOrRd",
+    reversescale = FALSE,
+    colorbar = list(
+      title = "% of BIP",
+      tickvals = density_ticks,
+      ticktext = paste0(round(density_ticks * 100), "%")
+    ),
+    hovertemplate = paste(
+      "LA bin: %{x:.1f}°",
+      "<br>EV bin: %{y:.1f} mph",
+      "<br>Share of BIP: %{z:.1%}",
+      "<extra></extra>"
+    )
+  ) |>
+    layout(
+      title = "EV/LA Density",
+      xaxis = list(title = "Launch Angle (°)", range = xr2),
+      yaxis = list(title = "Exit Velocity (mph)", range = yr2),
+      plot_bgcolor = "#A50026",
+      paper_bgcolor = "white",
+      shapes = list(
+        list(
+          type = "rect",
+          x0 = 20,
+          x1 = 40,
+          y0 = 95,
+          y1 = yr2[2],
+          line = list(color = "#00C853", dash = "dash", width = 4),
+          fillcolor = "rgba(0, 200, 83, 0.22)"
+        ),
+        list(
+          type = "line",
+          x0 = xr2[1],
+          x1 = xr2[2],
+          y0 = 95,
+          y1 = 95,
+          line = list(color = "#00E676", dash = "dash", width = 3.5)
+        ),
+        list(
+          type = "rect",
+          x0 = 8,
+          x1 = 32,
+          y0 = yr2[1],
+          y1 = yr2[2],
+          line = list(color = "rgba(56, 142, 60, 0.9)", dash = "dot", width = 2.5),
+          fillcolor = "rgba(56, 142, 60, 0.08)"
+        )
+      ),
+      annotations = list(
+        list(
+          x = 30,
+          y = yr2[2] - 2,
+          text = "Damage zone<br>(95+ EV, 20-40° LA)",
+          showarrow = FALSE,
+          bgcolor = "rgba(255, 255, 255, 0.8)",
+          bordercolor = "#00C853",
+          borderwidth = 2,
+          borderpad = 4,
+          font = list(size = 15, color = "#0B3D0B"),
+          xanchor = "center",
+          yanchor = "top"
+        ),
+        list(
+          x = -62,
+          y = 95,
+          text = "Hard-hit EV threshold (95 mph)",
+          showarrow = FALSE,
+          bgcolor = "rgba(255, 255, 255, 0.75)",
+          bordercolor = "#00E676",
+          borderwidth = 1.5,
+          borderpad = 3,
+          font = list(size = 12, color = "#004D40"),
+          xanchor = "left",
+          yanchor = "bottom"
+        ),
+        list(
+          x = 20,
+          y = yr2[1] + 4,
+          text = "Sweet-spot LA band (8-32°)",
+          showarrow = FALSE,
+          bgcolor = "rgba(255, 255, 255, 0.75)",
+          bordercolor = "rgba(56, 142, 60, 0.9)",
+          borderwidth = 1.5,
+          borderpad = 3,
+          font = list(size = 12, color = "#1B5E20"),
+          xanchor = "center",
+          yanchor = "bottom"
+        )
+      )
+    ) |>
+    config(displayModeBar = FALSE)
+}
