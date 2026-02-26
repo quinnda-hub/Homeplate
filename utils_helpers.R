@@ -12,15 +12,14 @@ downloadHeadshot <- function(player_id, path) {
     url |>
       image_read() |>
       image_crop(trim) |>
-      image_fill(color = "white",
-                 fuzz = 9,
-                 point = "+1+1")
-
-
+      image_fill(color = "white", fuzz = 9, point = "+1+1")
   }
 
-  url <- paste0("https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_426,q_auto:best/v1/people/",
-                player_id, "/headshot/67/current")
+  url <- paste0(
+    "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_426,q_auto:best/v1/people/",
+    player_id,
+    "/headshot/67/current"
+  )
 
   url |> trimBackground() |> image_write(path)
 }
@@ -28,7 +27,7 @@ downloadHeadshot <- function(player_id, path) {
 # this function will download a logo for a given team
 downloadLogo <- function(team_id) {
   paste0("https://www.mlbstatic.com/team-logos/", team_id, ".svg") |>
-    download.file(paste0("data-raw/logos/", team_id, ".svg"))
+    download.file(paste0("www/logos/", team_id, ".svg"))
 }
 
 searchList <- function(dt) {
@@ -51,28 +50,46 @@ qualified <- function(stats, stnds, group = "hitting") {
   }
 
   dt <- copy(stats[season == max(season)])
-  dt <- merge(dt, stnds[, .(team, team_games = wins + losses)], by = "team",
-              all.x = TRUE)
+  dt <- merge(
+    dt,
+    stnds[, .(team, team_games = wins + losses)],
+    by = "team",
+    all.x = TRUE
+  )
 
   dt[get(metric) >= (team_games * x) |> floor()]
 }
 
-retry <- function(expr, isError=function(x) "try-error" %in% class(x), maxErrors=5, sleep=0) {
+retry <- function(
+  expr,
+  isError = function(x) "try-error" %in% class(x),
+  maxErrors = 5,
+  sleep = 0
+) {
   attempts = 0
   retval = try(eval(expr))
   while (isError(retval)) {
     attempts = attempts + 1
     if (attempts >= maxErrors) {
-      msg = sprintf("retry: too many retries [[%s]]", capture.output(str(retval)))
+      msg = sprintf(
+        "retry: too many retries [[%s]]",
+        capture.output(str(retval))
+      )
       flog.fatal(msg)
       stop(msg)
     } else {
-      msg = sprintf("retry: error in attempt %i/%i [[%s]]", attempts, maxErrors,
-                    capture.output(str(retval)))
+      msg = sprintf(
+        "retry: error in attempt %i/%i [[%s]]",
+        attempts,
+        maxErrors,
+        capture.output(str(retval))
+      )
       flog.error(msg)
       warning(msg)
     }
-    if (sleep > 0) Sys.sleep(sleep)
+    if (sleep > 0) {
+      Sys.sleep(sleep)
+    }
     retval = try(eval(expr))
   }
   return(retval)
@@ -81,20 +98,40 @@ retry <- function(expr, isError=function(x) "try-error" %in% class(x), maxErrors
 GUTS_live <- function() {
   guts_table <- NULL
 
-  out <- tryCatch({
-    guts_table <- "https://www.fangraphs.com/guts.aspx?type=cn" |>
-      xml2::read_html() |>
-      rvest::html_element(xpath = '//*[@id="content"]/div[3]/div[2]/div/div/div[1]/table/tbody') |>
-      rvest::html_table() |>
-      setNames(c("season", "lg_woba", "woba_scale", "wBB", "wHBP", "w1B", "w2B", "w3B",
-                 "wHR", "runSB", "runCS", "lg_r_pa", "lg_r_w", "cFIP"))
+  out <- tryCatch(
+    {
+      guts_table <- "https://www.fangraphs.com/guts.aspx?type=cn" |>
+        xml2::read_html() |>
+        rvest::html_element(
+          xpath = '//*[@id="content"]/div[3]/div[2]/div/div/div[1]/table/tbody'
+        ) |>
+        rvest::html_table() |>
+        setNames(c(
+          "season",
+          "lg_woba",
+          "woba_scale",
+          "wBB",
+          "wHBP",
+          "w1B",
+          "w2B",
+          "w3B",
+          "wHR",
+          "runSB",
+          "runCS",
+          "lg_r_pa",
+          "lg_r_w",
+          "cFIP"
+        ))
 
-    data.table::as.data.table(guts_table)
-  }, error = function(e) {
-    stop(paste0(
-      "GUTS scrape/parse failed: ", conditionMessage(e)
-    ))
-  })
+      data.table::as.data.table(guts_table)
+    },
+    error = function(e) {
+      stop(paste0(
+        "GUTS scrape/parse failed: ",
+        conditionMessage(e)
+      ))
+    }
+  )
 
   out
 }
@@ -112,4 +149,3 @@ getCurrentSeason <- function() {
 }
 
 `%||%` <- function(a, b) if (!is.null(a)) a else b
-

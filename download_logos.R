@@ -1,6 +1,5 @@
-# source("R/teams.R")
-# source("R/utils.R")
+source("utils_helpers.R")
 
-# dir.create("data/logos", showWarnings = FALSE)
-#
-# Map(downloadLogo, teamIds())
+dir.create("www/logos", showWarnings = FALSE)
+
+Map(downloadLogo, teamIds())
