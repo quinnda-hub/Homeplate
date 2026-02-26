@@ -295,25 +295,47 @@ server <- function(input, output, session) {
 
     damage_zone_rate <- mean(
       balls_in_play$launch_speed >= 95 &
-        balls_in_play$launch_angle >= 20 &
-        balls_in_play$launch_angle <= 40,
+        balls_in_play$launch_angle >= 8 &
+        balls_in_play$launch_angle <= 32,
       na.rm = TRUE
     )
     pop_rate <- mean(balls_in_play$launch_angle > 50, na.rm = TRUE)
 
+    kpi_mini <- function(label, value) {
+      tags$div(
+        style="
+      border:1px solid #e6e6e6; border-radius:12px; padding:10px 10px;
+      background:#fff; box-shadow:0 1px 2px rgba(0,0,0,0.04);",
+        tags$div(style="color:#5f6368; font-size:11px; margin-bottom:4px;", label),
+        tags$div(style="font-size:16px; font-weight:750; font-variant-numeric: tabular-nums;", value)
+      )
+    }
+
+    stat_row <- function(label, value) {
+      tags$div(
+        class = "sb-row",
+        tags$div(class = "sb-label", label),
+        tags$div(class = "sb-value", value)
+      )
+    }
+
     tags$div(
-      tags$ul(
-        tags$li(paste0("Batted balls: ", nrow(balls_in_play))),
-        tags$li(paste0("Avg EV / LA: ", round(avg_ev, 1), " mph / ", round(avg_la, 1), "°")),
-        tags$li(paste0("90th pct EV: ", round(p90_ev, 1), " mph")),
-        tags$li(paste0("Hard-hit rate: ", sprintf("%.1f%%", hard_hit_rate * 100))),
-        tags$li(paste0("Sweet-spot rate: ", sprintf("%.1f%%", sweet_spot_rate * 100))),
-        tags$li(paste0("Damage-zone rate: ", sprintf("%.1f%%", damage_zone_rate * 100))),
-        tags$li(paste0("Pop-up rate (>50° LA): ", sprintf("%.1f%%", pop_rate * 100)))
-      ),
-      tags$small(
-        style = "color:#5f6368;",
-        "Benchmarks: hard-hit = 95+ mph, sweet-spot = 8-32° LA, damage zone = 95+ EV and 20-40° LA."
+      style="display:grid; grid-template-columns:1fr; gap:10px; margin-top:10px;",
+      kpi_mini("Batted balls", nrow(balls_in_play)),
+      kpi_mini("Avg EV / LA", sprintf("%.1f mph / %.1f°", avg_ev, avg_la)),
+      kpi_mini("90th pct EV", sprintf("%.1f mph", p90_ev)),
+      kpi_mini("Hard-hit", sprintf("%.1f%%", hard_hit_rate * 100)),
+      kpi_mini("Sweet-spot", sprintf("%.1f%%", sweet_spot_rate * 100)),
+      kpi_mini("Damage-zone", sprintf("%.1f%%", damage_zone_rate * 100)),
+      kpi_mini("Pop-ups (>50°)", sprintf("%.1f%%", pop_rate * 100)),
+
+      tags$details(
+        style="margin-top:6px;",
+        tags$summary(style="cursor:pointer; color:#5f6368; font-size:11px;", "Benchmarks"),
+        tags$div(
+          class="sb-note",
+          "Hard-hit: 95+ mph. Sweet-spot: 8–32° LA. Damage zone: 95+ EV and 20–40° LA."
+        )
       )
     )
   })
