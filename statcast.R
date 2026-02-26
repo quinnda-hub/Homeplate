@@ -278,15 +278,6 @@ plotContactEVAngleDensity <- function(dt) {
       paper_bgcolor = "white",
       shapes = list(
         list(
-          type = "rect",
-          x0 = 20,
-          x1 = 40,
-          y0 = 95,
-          y1 = yr2[2],
-          line = list(color = "#00C853", dash = "dash", width = 4),
-          fillcolor = "rgba(0, 200, 83, 0.22)"
-        ),
-        list(
           type = "line",
           x0 = xr2[1],
           x1 = xr2[2],
@@ -305,19 +296,6 @@ plotContactEVAngleDensity <- function(dt) {
         )
       ),
       annotations = list(
-        list(
-          x = 30,
-          y = yr2[2] - 2,
-          text = "Damage zone<br>(95+ EV, 20-40° LA)",
-          showarrow = FALSE,
-          bgcolor = "rgba(255, 255, 255, 0.8)",
-          bordercolor = "#00C853",
-          borderwidth = 2,
-          borderpad = 4,
-          font = list(size = 15, color = "#0B3D0B"),
-          xanchor = "center",
-          yanchor = "top"
-        ),
         list(
           x = -62,
           y = 95,
