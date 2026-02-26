@@ -151,12 +151,49 @@ plotContactEVAngle <- function(dt) {
 }
 
 plotContactSprayChart <- function(dt) {
-  balls_in_play <- dt[!is.na(hc_x) & !is.na(hc_y)]
+  balls_in_play <- dt[type == "X"]
   balls_in_play[, hc_y := hc_y * -1]
 
   balls_in_play[, event_label := data.table::fifelse(is.na(events) | events == "", "In Play", events)]
   balls_in_play[, event_label := stringr::str_replace_all(event_label, "_", " ")]
   balls_in_play[, event_label := stringr::str_to_title(event_label)]
+
+  # Helper formatter for NAs
+  fmt <- function(x, digits = 1, suffix = "") {
+    ifelse(is.na(x), "—", paste0(format(round(x, digits), nsmall = digits), suffix))
+  }
+
+  balls_in_play[, `:=`(
+    hv_date  = as.character(game_date),
+    hv_ev    = fmt(launch_speed, 1, " mph"),
+    hv_la    = fmt(launch_angle, 1, "°"),
+    hv_dist  = fmt(hit_distance_sc, 0, " ft"),
+    hv_xwOBA = fmt(estimated_woba_using_speedangle, 3, ""),
+    hv_xBA   = fmt(estimated_ba_using_speedangle, 3, ""),
+    hv_pitch = ifelse(is.na(pitch_name) | pitch_name == "", "—", pitch_name),
+    hv_velo  = fmt(release_speed, 1, " mph"),
+    hv_spin  = fmt(release_spin_rate, 0, " rpm"),
+    hv_ext   = fmt(release_extension, 1, " ft"),
+    hv_bspd  = fmt(bat_speed, 1, " mph"),
+    hv_slen  = fmt(swing_length, 1, " ft"),
+    hv_aa    = fmt(attack_angle, 1, "°"),
+    hv_dRE   = fmt(delta_run_exp, 2, "")
+  )]
+
+  balls_in_play[, hovertext := paste0(
+    "<b>", as.character(event_label), "</b>",
+    "<br>Date: ", hv_date,
+    "<br>Pitch: ", hv_pitch,
+    "<br><br><b>Contact</b>",
+    "<br>EV / LA: ", hv_ev, " / ", hv_la,
+    "<br>Dist: ", hv_dist,
+    "<br>xwOBA: ", hv_xwOBA, " | xBA: ", hv_xBA,
+    "<br><br><b>Pitch</b>",
+    "<br>Velo: ", hv_velo, " | Spin: ", hv_spin, " | Ext: ", hv_ext,
+    "<br><br><b>Swing</b>",
+    "<br>Bat spd: ", hv_bspd, " | Swing len: ", hv_slen, " | Attack: ", hv_aa,
+    "<br><br>ΔRun Expectancy: ", hv_dRE
+  )]
 
   pal <- c(
     "Field Out"                  = "#B0B0B0",
@@ -187,7 +224,7 @@ plotContactSprayChart <- function(dt) {
   field_shapes <- make_field_shapes(xr2, yr2)
 
   plot_ly(
-    balls_in_play,
+    data = balls_in_play,
     x = ~hc_x,
     y = ~hc_y,
     type = "scatter",
@@ -199,11 +236,8 @@ plotContactSprayChart <- function(dt) {
       opacity = 0.70,
       line = list(width = 0.6, color = "rgba(0,0,0,0.25)")
     ),
-    hovertemplate = paste(
-      "Spray: (%{x:.0f}, %{y:.0f})",
-      "<br>Result: %{fullData.name}",
-      "<extra></extra>"
-    )
+    text = ~hovertext,
+    hovertemplate = "%{text}<extra></extra>"
   ) |>
     layout(
       title = "Spray Chart",
@@ -226,7 +260,8 @@ plotContactSprayChart <- function(dt) {
                    ticks = "", showline = FALSE,
                    scaleanchor = "x", scaleratio = 1),
       hovermode = "closest"
-    ) |> config(displayModeBar = FALSE)
+    ) |>
+    config(displayModeBar = FALSE)
 }
 
 plotContactEVAngleDensity <- function(dt) {
