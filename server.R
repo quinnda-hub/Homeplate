@@ -334,7 +334,7 @@ server <- function(input, output, session) {
         tags$summary(style="cursor:pointer; color:#5f6368; font-size:11px;", "Benchmarks"),
         tags$div(
           class="sb-note",
-          "Hard-hit: 95+ mph. Sweet-spot: 8–32° LA. Damage zone: 95+ EV and 20–40° LA."
+          "Hard-hit: 95+ mph. Sweet-spot: 8–32° LA. Damage zone: 95+ EV and 8-32° LA."
         )
       )
     )
