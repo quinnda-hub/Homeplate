@@ -4,7 +4,7 @@ temp_dir <- "www/players"
 
 cf <- cache_disk(max_age = 24 * 60 * 60)
 dh <- memoise(downloadHeadshot, cache = cf)
-sc_cache <- cache_disk(max_age =  6 * 60 * 60)
+sc_cache <- cache_disk(max_age = 6 * 60 * 60)
 sc_contact <- memoise(statcastContact, cache = sc_cache)
 
 # Contains all the values that should be shared across sessions.
@@ -79,7 +79,12 @@ server <- function(input, output, session) {
       c("AVG", "OBP", "SLG", "OPS")
     }
 
-    updateSelectizeInput(session, "stat_search", choices = choices, server = FALSE)
+    updateSelectizeInput(
+      session,
+      "stat_search",
+      choices = choices,
+      server = FALSE
+    )
 
     val <- if (input$stats == "Pitching") 3 else 6
     max <- if (input$stats == "Pitching") 14 else 30
@@ -101,57 +106,60 @@ server <- function(input, output, session) {
     renderReactable(standingsRctbl(global_vals$standings, "nl east"))
 
   # Tables for player stats.
-   output$batting_logs <- renderReactable({
-     req(input$player_search)
-     blogs <- global_vals$batting_logs()
-     battingLogsRctbl(blogs[player_id == input$player_search])
-   })
+  output$batting_logs <- renderReactable({
+    req(input$player_search)
+    blogs <- global_vals$batting_logs()
+    battingLogsRctbl(blogs[player_id == input$player_search])
+  })
 
-   output$batting_stats <- renderReactable({
-     req(input$player_search)
-     bstats <- global_vals$batting_stats()
-     battingStatsRctbl(bstats[id == input$player_search])
-   })
+  output$batting_stats <- renderReactable({
+    req(input$player_search)
+    bstats <- global_vals$batting_stats()
+    battingStatsRctbl(bstats[id == input$player_search])
+  })
 
-   output$pitching_logs <- renderReactable({
-     req(input$player_search)
-     plogs <- global_vals$pitching_logs()
-     pitchingLogsRctbl(plogs[player_id == input$player_search])
-   })
+  output$pitching_logs <- renderReactable({
+    req(input$player_search)
+    plogs <- global_vals$pitching_logs()
+    pitchingLogsRctbl(plogs[player_id == input$player_search])
+  })
 
-   output$pitching_stats <- renderReactable({
-     req(input$player_search)
-     pstats <- global_vals$pitching_stats()
-     pitchingStatsRctbl(pstats[id == input$player_search])
+  output$pitching_stats <- renderReactable({
+    req(input$player_search)
+    pstats <- global_vals$pitching_stats()
+    pitchingStatsRctbl(pstats[id == input$player_search])
   })
 
   # Since head shots can change, especially around the trade deadline, we want
   # to make sure that we download recent photos, but without downloading the same
   # photo every time. Hence, the images are stored in a 24 hour cache.
-  output$head_shot <- renderImage({
-    req(input$player_search)
+  output$head_shot <- renderImage(
+    {
+      req(input$player_search)
 
-    path <- paste0("www/players",
-                   "/",
-                   input$player_search,
-                   ".png")
+      path <- paste0("www/players", "/", input$player_search, ".png")
 
-    # Cached version of downloadHeadshot().
-    dh(input$player_search, path)
+      # Cached version of downloadHeadshot().
+      dh(input$player_search, path)
 
-    list(
-      src = paste0(
-        "www/players",
-        "/",
-        input$player_search,
-        ".png"
-      ),
-      contentType = "image/png",
-      width = 106,
-      height = 160,
-      alt = global_vals$active_players()[player_id == input$player_search, name]
-    )
-  }, deleteFile = FALSE)
+      list(
+        src = paste0(
+          "www/players",
+          "/",
+          input$player_search,
+          ".png"
+        ),
+        contentType = "image/png",
+        width = 106,
+        height = 160,
+        alt = global_vals$active_players()[
+          player_id == input$player_search,
+          name
+        ]
+      )
+    },
+    deleteFile = FALSE
+  )
 
   # Some summary information on the selected player.
   output$summary <- renderUI({
@@ -175,12 +183,19 @@ server <- function(input, output, session) {
 
     if (input$stats == "Pitching") {
       plogs <- global_vals$pitching_logs()
-      pitchingLogsPlot(plogs[player_id == input$player_search], stat, input$rolling_window)
+      pitchingLogsPlot(
+        plogs[player_id == input$player_search],
+        stat,
+        input$rolling_window
+      )
     } else {
       blogs <- global_vals$batting_logs()
-      battingLogsPlot(blogs[player_id == input$player_search], stat, input$rolling_window)
+      battingLogsPlot(
+        blogs[player_id == input$player_search],
+        stat,
+        input$rolling_window
+      )
     }
-
   })
 
   # If a player's primary position is a Pitcher, display pitching stats
@@ -194,7 +209,10 @@ server <- function(input, output, session) {
       return()
     }
 
-    position <- global_vals$active_players()[player_id == input$player_search, position]
+    position <- global_vals$active_players()[
+      player_id == input$player_search,
+      position
+    ]
     selection <- if (position == "Pitcher") "Pitching" else "Batting"
 
     updateTabsetPanel(session, "stats", selected = selection)
@@ -209,9 +227,7 @@ server <- function(input, output, session) {
   })
 
   contact_data_raw <- reactive({
-    req(input$stats == "Contact Lab",
-        input$player_search,
-        input$contact_dates)
+    req(input$stats == "Contact Lab", input$player_search, input$contact_dates)
 
     tryCatch(
       sc_contact(
@@ -229,19 +245,25 @@ server <- function(input, output, session) {
     dt <- contact_data_raw()
 
     if (!nrow(dt)) {
-      updateSelectizeInput(session, "contact_pitch_type",
-                           choices = "All",
-                           selected = "All")
-      updateSelectizeInput(session, "contact_bb_type",
-                           choices = "All",
-                           selected = "All")
+      updateSelectizeInput(
+        session,
+        "contact_pitch_type",
+        choices = "All",
+        selected = "All"
+      )
+      updateSelectizeInput(
+        session,
+        "contact_bb_type",
+        choices = "All",
+        selected = "All"
+      )
       return()
     }
 
     updateSelectizeInput(
       session,
       "contact_pitch_type",
-      choices = c("All", sort(unique(dt$pitch_type))),
+      choices = c("All", sort(unique(stats::na.omit(dt$pitch_name)))),
       selected = "All"
     )
 
@@ -259,13 +281,17 @@ server <- function(input, output, session) {
       return(dt)
     }
 
-    if (!is.null(input$contact_pitch_type) &&
-        input$contact_pitch_type != "All") {
-      dt <- dt[pitch_type == input$contact_pitch_type]
+    if (
+      !is.null(input$contact_pitch_type) &&
+        input$contact_pitch_type != "All"
+    ) {
+      dt <- dt[pitch_name == input$contact_pitch_type]
     }
 
-    if (!is.null(input$contact_bb_type) &&
-        input$contact_bb_type != "All") {
+    if (
+      !is.null(input$contact_bb_type) &&
+        input$contact_bb_type != "All"
+    ) {
       dt <- dt[bb_type == input$contact_bb_type]
     }
 
@@ -282,16 +308,26 @@ server <- function(input, output, session) {
     balls_in_play <- dt[type == "X"]
 
     validate(
-      need(nrow(balls_in_play) > 0, "No batted-ball data for the selected filters.")
+      need(
+        nrow(balls_in_play) > 0,
+        "No batted-ball data for the selected filters."
+      )
     )
 
     avg_ev <- mean(balls_in_play$launch_speed, na.rm = TRUE)
     avg_la <- mean(balls_in_play$launch_angle, na.rm = TRUE)
-    p90_ev <- as.numeric(stats::quantile(balls_in_play$launch_speed, probs = 0.9, na.rm = TRUE))
+    p90_ev <- as.numeric(stats::quantile(
+      balls_in_play$launch_speed,
+      probs = 0.9,
+      na.rm = TRUE
+    ))
 
     hard_hit_rate <- mean(balls_in_play$launch_speed >= 95, na.rm = TRUE)
-    sweet_spot_rate <- mean(balls_in_play$launch_angle >= 8 &
-                              balls_in_play$launch_angle <= 32, na.rm = TRUE)
+    sweet_spot_rate <- mean(
+      balls_in_play$launch_angle >= 8 &
+        balls_in_play$launch_angle <= 32,
+      na.rm = TRUE
+    )
 
     damage_zone_rate <- mean(
       balls_in_play$launch_speed >= 95 &
@@ -303,11 +339,17 @@ server <- function(input, output, session) {
 
     kpi_mini <- function(label, value) {
       tags$div(
-        style="
+        style = "
       border:1px solid #e6e6e6; border-radius:12px; padding:10px 10px;
       background:#fff; box-shadow:0 1px 2px rgba(0,0,0,0.04);",
-        tags$div(style="color:#5f6368; font-size:11px; margin-bottom:4px;", label),
-        tags$div(style="font-size:16px; font-weight:750; font-variant-numeric: tabular-nums;", value)
+        tags$div(
+          style = "color:#5f6368; font-size:11px; margin-bottom:4px;",
+          label
+        ),
+        tags$div(
+          style = "font-size:16px; font-weight:750; font-variant-numeric: tabular-nums;",
+          value
+        )
       )
     }
 
@@ -320,7 +362,7 @@ server <- function(input, output, session) {
     }
 
     tags$div(
-      style="display:grid; grid-template-columns:1fr; gap:10px; margin-top:10px;",
+      style = "display:grid; grid-template-columns:1fr; gap:10px; margin-top:10px;",
       kpi_mini("Batted balls", nrow(balls_in_play)),
       kpi_mini("Avg EV / LA", sprintf("%.1f mph / %.1f°", avg_ev, avg_la)),
       kpi_mini("90th pct EV", sprintf("%.1f mph", p90_ev)),
@@ -330,10 +372,13 @@ server <- function(input, output, session) {
       kpi_mini("Pop-ups (>50°)", sprintf("%.1f%%", pop_rate * 100)),
 
       tags$details(
-        style="margin-top:6px;",
-        tags$summary(style="cursor:pointer; color:#5f6368; font-size:11px;", "Benchmarks"),
+        style = "margin-top:6px;",
+        tags$summary(
+          style = "cursor:pointer; color:#5f6368; font-size:11px;",
+          "Benchmarks"
+        ),
         tags$div(
-          class="sb-note",
+          class = "sb-note",
           "Hard-hit: 95+ mph. Sweet-spot: 8–32° LA. Damage zone: 95+ EV and 8-32° LA."
         )
       )
@@ -350,7 +395,10 @@ server <- function(input, output, session) {
     balls_in_play <- dt[type == "X"]
 
     validate(
-      need(nrow(balls_in_play) > 0, "No batted-ball data for the selected filters.")
+      need(
+        nrow(balls_in_play) > 0,
+        "No batted-ball data for the selected filters."
+      )
     )
 
     plotContactEVAngleDensity(balls_in_play)
@@ -366,7 +414,10 @@ server <- function(input, output, session) {
     balls_in_play <- dt[type == "X"]
 
     validate(
-      need(nrow(balls_in_play) > 0, "No spray chart data for the selected filters.")
+      need(
+        nrow(balls_in_play) > 0,
+        "No spray chart data for the selected filters."
+      )
     )
 
     plotContactSprayChart(balls_in_play)
