@@ -9,7 +9,8 @@ ui <- function(request) {
     shinyjs::useShinyjs(),
 
     shiny::tags$head(
-      shiny::tags$style(shiny::HTML("
+      shiny::tags$style(shiny::HTML(
+        "
         /* Hide transient Shiny errors (your hack) */
         .shiny-output-error { visibility: hidden; }
         .shiny-output-error:before { visibility: hidden; }
@@ -92,7 +93,29 @@ ui <- function(request) {
         }
 
         .contact-plots > * { min-height: 0; }
-      "))
+
+                /* ---------- Pitching Lab layout ---------- */
+        .pitching-layout {
+          height: 100%;
+          display: grid;
+          grid-template-columns: 320px 1fr;
+          gap: 10px;
+          min-height: 0;
+        }
+
+        .pitching-layout > * { min-height: 0; }
+
+        .pitching-plots {
+          height: 100%;
+          display: grid;
+          grid-template-rows: 1fr 1fr;
+          gap: 10px;
+          min-height: 0;
+        }
+
+        .pitching-plots > * { min-height: 0; }
+      "
+      ))
     ),
 
     shiny::navbarPage(
@@ -112,7 +135,7 @@ ui <- function(request) {
         "Standings",
         shiny::fluidPage(
           bslib::layout_column_wrap(
-            width = 1/2,
+            width = 1 / 2,
             reactable::reactableOutput("al_east"),
             reactable::reactableOutput("nl_east"),
             reactable::reactableOutput("al_central"),
@@ -140,14 +163,29 @@ ui <- function(request) {
                   shiny::div(
                     id = "_plot",
                     style = "margin-left: -35px",
-                    plotly::plotlyOutput("plot", height = "180px", width = "275px")
+                    plotly::plotlyOutput(
+                      "plot",
+                      height = "180px",
+                      width = "275px"
+                    )
                   )
                 ),
                 shiny::div(
                   id = "controls",
-                  shiny::selectizeInput("stat_search", choices = NULL, multiple = FALSE, label = NULL),
+                  shiny::selectizeInput(
+                    "stat_search",
+                    choices = NULL,
+                    multiple = FALSE,
+                    label = NULL
+                  ),
                   shinyWidgets::chooseSliderSkin("Flat", color = "Maroon"),
-                  shiny::sliderInput("rolling_window", "Smoothness", min = 1, max = 30, value = 6)
+                  shiny::sliderInput(
+                    "rolling_window",
+                    "Smoothness",
+                    min = 1,
+                    max = 30,
+                    value = 6
+                  )
                 )
               )
             ),
@@ -164,7 +202,12 @@ ui <- function(request) {
                   labeledInput(
                     "player",
                     "Search for a player:",
-                    shiny::selectizeInput("player_search", choices = NULL, multiple = FALSE, label = NULL)
+                    shiny::selectizeInput(
+                      "player_search",
+                      choices = NULL,
+                      multiple = FALSE,
+                      label = NULL
+                    )
                   )
                 ),
 
@@ -179,12 +222,20 @@ ui <- function(request) {
                         class = "split-rows",
                         shiny::div(
                           class = "panel-card",
-                          reactable::reactableOutput("batting_logs", height = "100%", width = "100%") |>
+                          reactable::reactableOutput(
+                            "batting_logs",
+                            height = "100%",
+                            width = "100%"
+                          ) |>
                             shinycssloaders::withSpinner(color = "#0DC5C1")
                         ),
                         shiny::div(
                           class = "panel-card",
-                          reactable::reactableOutput("batting_stats", height = "100%", width = "100%") |>
+                          reactable::reactableOutput(
+                            "batting_stats",
+                            height = "100%",
+                            width = "100%"
+                          ) |>
                             shinycssloaders::withSpinner(color = "white")
                         )
                       )
@@ -196,12 +247,20 @@ ui <- function(request) {
                         class = "split-rows",
                         shiny::div(
                           class = "panel-card",
-                          reactable::reactableOutput("pitching_logs", height = "100%", width = "100%") |>
+                          reactable::reactableOutput(
+                            "pitching_logs",
+                            height = "100%",
+                            width = "100%"
+                          ) |>
                             shinycssloaders::withSpinner(color = "#0DC5C1")
                         ),
                         shiny::div(
                           class = "panel-card",
-                          reactable::reactableOutput("pitching_stats", height = "100%", width = "100%") |>
+                          reactable::reactableOutput(
+                            "pitching_stats",
+                            height = "100%",
+                            width = "100%"
+                          ) |>
                             shinycssloaders::withSpinner(color = "white")
                         ),
                       )
@@ -241,13 +300,108 @@ ui <- function(request) {
 
                           shiny::div(
                             class = "panel-card",
-                            plotly::plotlyOutput("contact_ev_density", height = "100%", width = "100%") |>
+                            plotly::plotlyOutput(
+                              "contact_ev_density",
+                              height = "100%",
+                              width = "100%"
+                            ) |>
                               shinycssloaders::withSpinner(color = "#0DC5C1")
                           ),
 
                           shiny::div(
                             class = "panel-card",
-                            plotly::plotlyOutput("contact_spray", height = "100%", width = "100%") |>
+                            plotly::plotlyOutput(
+                              "contact_spray",
+                              height = "100%",
+                              width = "100%"
+                            ) |>
+                              shinycssloaders::withSpinner(color = "white")
+                          )
+                        )
+                      )
+                    ),
+                    shiny::tabPanel(
+                      "Pitching Lab",
+                      shiny::div(
+                        class = "pitching-layout",
+
+                        shiny::div(
+                          class = "panel-card",
+                          shiny::dateRangeInput(
+                            "pitchlab_dates",
+                            "Date range",
+                            start = Sys.Date() - 30,
+                            end = Sys.Date()
+                          ),
+                          shiny::selectizeInput(
+                            "pitchlab_pitch_type",
+                            "Pitch type",
+                            choices = "All",
+                            multiple = TRUE
+                          ),
+                          shiny::selectizeInput(
+                            "pitchlab_count_state",
+                            "Count state",
+                            choices = c("All", "Ahead", "Even", "Behind"),
+                            selected = "All",
+                            multiple = TRUE
+                          ),
+                          shiny::selectizeInput(
+                            "pitchlab_tto",
+                            "Times through order",
+                            choices = c("All", "1", "2", "3+"),
+                            selected = "All",
+                            multiple = TRUE
+                          ),
+                          shiny::selectizeInput(
+                            "pitchlab_batter_hand",
+                            "Batter handedness",
+                            choices = c("All", "L", "R"),
+                            selected = "All",
+                            multiple = TRUE
+                          ),
+                          shiny::selectizeInput(
+                            "pitchlab_zone_filter",
+                            "Zone filter",
+                            choices = c("All", "In Zone", "Out of Zone"),
+                            selected = "All",
+                            multiple = TRUE
+                          ),
+                          shiny::selectizeInput(
+                            "pitchlab_runners",
+                            "Base state",
+                            choices = c("All", "Bases Empty", "Runners On"),
+                            selected = "All",
+                            multiple = TRUE
+                          ),
+                          shiny::checkboxInput(
+                            "pitchlab_two_strike",
+                            "Two-strike pitches only",
+                            value = FALSE
+                          ),
+                          shiny::uiOutput("pitchlab_summary")
+                        ),
+
+                        shiny::div(
+                          class = "pitching-plots",
+
+                          shiny::div(
+                            class = "panel-card",
+                            plotly::plotlyOutput(
+                              "pitchlab_movement",
+                              height = "100%",
+                              width = "100%"
+                            ) |>
+                              shinycssloaders::withSpinner(color = "#0DC5C1")
+                          ),
+
+                          shiny::div(
+                            class = "panel-card",
+                            plotly::plotlyOutput(
+                              "pitchlab_velocity",
+                              height = "100%",
+                              width = "100%"
+                            ) |>
                               shinycssloaders::withSpinner(color = "white")
                           )
                         )
@@ -263,4 +417,3 @@ ui <- function(request) {
     )
   )
 }
-
