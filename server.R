@@ -4,8 +4,10 @@ temp_dir <- "www/players"
 
 cf <- cache_disk(max_age = 24 * 60 * 60)
 dh <- memoise(downloadHeadshot, cache = cf)
-sc_cache <- cache_disk(max_age = 6 * 60 * 60)
-sc_contact <- memoise(statcastContact, cache = sc_cache)
+sc_contact_cache <- cache_disk(max_age = 6 * 60 * 60)
+sc_contact <- memoise(statcast_contact, cache = sc_contact_cache)
+sc_pitch_cache <- cache_disk(max_age = 6 * 60 * 60)
+sc_pitch <- memoise(statcast_contact, cache = sc_pitch_cache)
 
 # Contains all the values that should be shared across sessions.
 global_vals <-
