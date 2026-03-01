@@ -7,7 +7,7 @@ dh <- memoise(downloadHeadshot, cache = cf)
 sc_contact_cache <- cache_disk(max_age = 6 * 60 * 60)
 sc_contact <- memoise(statcast_contact, cache = sc_contact_cache)
 sc_pitch_cache <- cache_disk(max_age = 6 * 60 * 60)
-sc_pitch <- memoise(statcast_contact, cache = sc_pitch_cache)
+sc_pitch <- memoise(statcast_pitch, cache = sc_pitch_cache)
 
 # Contains all the values that should be shared across sessions.
 global_vals <-
@@ -71,7 +71,10 @@ server <- function(input, output, session) {
   observe({
     req(input$player_search)
 
-    if (identical(input$stats, "Contact Lab")) {
+    if (
+      identical(input$stats, "Contact Lab") ||
+        identical(input$stats, "Pitching Lab")
+    ) {
       return()
     }
 
@@ -206,8 +209,11 @@ server <- function(input, output, session) {
   observeEvent(input$player_search, {
     req(input$player_search)
 
-    # If user is currently on Contact Lab, don't override their tab choice
-    if (identical(isolate(input$stats), "Contact Lab")) {
+    # If user is currently on Contact Lab, don't override their tab choice.
+    if (
+      identical(isolate(input$stats), "Contact Lab") ||
+        identical(input$stats, "Pitching Lab")
+    ) {
       return()
     }
 
@@ -339,22 +345,6 @@ server <- function(input, output, session) {
     )
     pop_rate <- mean(balls_in_play$launch_angle > 50, na.rm = TRUE)
 
-    kpi_mini <- function(label, value) {
-      tags$div(
-        style = "
-      border:1px solid #e6e6e6; border-radius:12px; padding:10px 10px;
-      background:#fff; box-shadow:0 1px 2px rgba(0,0,0,0.04);",
-        tags$div(
-          style = "color:#5f6368; font-size:11px; margin-bottom:4px;",
-          label
-        ),
-        tags$div(
-          style = "font-size:16px; font-weight:750; font-variant-numeric: tabular-nums;",
-          value
-        )
-      )
-    }
-
     stat_row <- function(label, value) {
       tags$div(
         class = "sb-row",
@@ -423,5 +413,288 @@ server <- function(input, output, session) {
     )
 
     plotContactSprayChart(balls_in_play)
+  })
+
+  pitchlab_data_raw <- reactive({
+    req(
+      input$stats == "Pitching Lab",
+      input$player_search,
+      input$pitchlab_dates
+    )
+
+    tryCatch(
+      tibble::as.tibble(
+        sc_pitch(
+          input$player_search,
+          input$pitchlab_dates[[1]],
+          input$pitchlab_dates[[2]]
+        )
+      ),
+      error = function(e) {
+        tibble::tibble()
+      }
+    )
+  })
+
+  observeEvent(pitchlab_data_raw(), {
+    tbl <- pitchlab_data_raw()
+
+    if (!nrow(tbl)) {
+      updateSelectInput(
+        session,
+        "pitchlab_pitch_type",
+        choices = "All",
+        selected = "All"
+      )
+      return()
+    }
+
+    updateSelectInput(
+      session,
+      "pitchlab_pitch_type",
+      choices = c("All", sort(unique(stats::na.omit(tbl$pitch_name)))),
+      selected = "All"
+    )
+  })
+
+  pitchlab_data <- reactive({
+    tbl <- pitchlab_data_raw()
+    if (!nrow(tbl)) {
+      return(tbl)
+    }
+
+    selected_types <- input$pitchlab_pitch_type
+    if (
+      !is.null(selected_types) &&
+        length(selected_types) &&
+        !("All" %in% selected_types)
+    ) {
+      tbl <- tbl |>
+        dplyr::filter(pitch_name %in% selected_types)
+    }
+
+    count_states <- input$pitchlab_count_state
+    if (
+      !is.null(count_states) &&
+        length(count_states) &&
+        !("All" %in% count_states)
+    ) {
+      tbl <- tbl |>
+        dplyr::mutate(
+          count_state = dplyr::if_else(
+            strikes > balls,
+            "Ahead",
+            dplyr::if_else(balls > strikes, "Behind", "Even")
+          )
+        )
+      tbl <- tbl |>
+        dplyr::filter(count_state %in% count_states)
+    }
+
+    tto <- input$pitchlab_tto
+    if (!is.null(tto) && length(tto) && !("All" %in% tto)) {
+      tbl <- tbl |>
+        dplyr::mutate(
+          tto_bucket = dplyr::if_else(
+            is.na(n_thruorder_pitcher),
+            NA_character_,
+            dplyr::if_else(
+              n_thruorder_pitcher >= 3,
+              "3+",
+              as.character(n_thruorder_pitcher)
+            )
+          )
+        )
+      tbl <- tbl |> dplyr::filter(tto_bucket %in% tto)
+    }
+
+    batter_hand <- input$pitchlab_batter_hand
+    if (
+      !is.null(batter_hand) && length(batter_hand) && !("All" %in% batter_hand)
+    ) {
+      tbl <- tbl |> dplyr::filter(stand %in% batter_hand)
+    }
+
+    zone_filter <- input$pitchlab_zone_filter
+    if (
+      !is.null(zone_filter) && length(zone_filter) && !("All" %in% zone_filter)
+    ) {
+      in_zone <- !is.na(tbl$zone) & tbl$zone %in% 1:9
+      if ("In Zone" %in% zone_filter && !"Out of Zone" %in% zone_filter) {
+        tbl <- tbl[in_zone, ]
+      } else if (
+        "Out of Zone" %in% zone_filter && !"In Zone" %in% zone_filter
+      ) {
+        tbl <- tbl[!in_zone, ]
+      }
+    }
+
+    runners <- input$pitchlab_runners
+    if (!is.null(runners) && length(runners) && !("All" %in% runners)) {
+      tbl <- tbl |>
+        dplyr::mutate(
+          has_runners = !is.na(on_1b) | !is.na(on_2b) | !is.na(on_3b)
+        )
+      if ("Bases Empty" %in% runners && !"Runners On" %in% runners) {
+        tbl <- tbl |> dplyr::filter(!has_runners)
+      } else if ("Runners On" %in% runners && !"Bases Empty" %in% runners) {
+        tbl <- tbl |> dplyr::filter(has_runners)
+      }
+    }
+
+    if (isTRUE(input$pitchlab_two_strike)) {
+      tbl <- tbl |> dplyr::filter(strikes == 2)
+    }
+
+    tbl
+  })
+
+  output$pitchlab_summary <- renderUI({
+    tbl <- pitchlab_data()
+
+    validate(need(
+      nrow(tbl) > 0,
+      "No Statcast pitching data available for this range."
+    ))
+
+    attack <- summarise_pitch_attack(tbl)
+
+    pitch_lvl <- summarise_pitch_level(tbl)
+    pa_end <- summarise_pa_ending(tbl)
+
+    # aggregate pitch-level across pitch types (weighted by pitch_n)
+    pitch_tot <- pitch_lvl |>
+      dplyr::summarise(
+        whiff_pct = sum(whiff_pct * pitch_n, na.rm = TRUE) /
+          sum(pitch_n, na.rm = TRUE),
+        putaway_pct = sum(putaway_pct * pitch_n, na.rm = TRUE) /
+          sum(pitch_n, na.rm = TRUE)
+      )
+
+    # aggregate PA-ending across pitch types
+    pa_tot <- pa_end |>
+      dplyr::summarise(
+        pa_n = sum(.data$pa, na.rm = TRUE),
+        bbe_n = sum(.data$bbe, na.rm = TRUE),
+
+        avg_ev = {
+          den <- sum(.data$bbe, na.rm = TRUE)
+          if (den == 0) {
+            NA_real_
+          } else {
+            sum(.data$ev * .data$bbe, na.rm = TRUE) / den
+          }
+        },
+
+        hardhit_pct = {
+          den <- sum(.data$bbe, na.rm = TRUE)
+          if (den == 0) {
+            NA_real_
+          } else {
+            sum(.data$hardhit * .data$bbe, na.rm = TRUE) / den
+          }
+        }
+      )
+
+    # K% and BB% need PA-level denominators.
+    # We already have so in pa_end; for BB we can infer from pa_end events by reusing a small calc:
+    by_pa_last <- tbl |>
+      tibble::as_tibble() |>
+      dplyr::filter(
+        !is.na(game_pk),
+        !is.na(at_bat_number),
+        !is.na(pitch_number)
+      ) |>
+      dplyr::group_by(game_pk, at_bat_number) |>
+      dplyr::slice_max(pitch_number, with_ties = FALSE) |>
+      dplyr::ungroup() |>
+      dplyr::filter(
+        (!is.na(events) & events != "") | (!is.na(type) & type == "X")
+      )
+
+    total_pas <- nrow(by_pa_last)
+
+    is_so <- !is.na(by_pa_last$events) &
+      by_pa_last$events %in% c("strikeout", "strikeout_double_play")
+    is_bb <- !is.na(by_pa_last$events) &
+      by_pa_last$events %in% c("walk", "intent_walk")
+
+    k_pct <- if (total_pas == 0) NA_real_ else mean(is_so, na.rm = TRUE)
+    bb_pct <- if (total_pas == 0) NA_real_ else mean(is_bb, na.rm = TRUE)
+
+    # Values
+    total_pitches <- attack$pitches
+    zone_pct <- attack$zone_pct
+    csw_pct <- attack$csw_pct
+    fps_pct <- attack$fps_pct
+    whiff_pct <- pitch_tot$whiff_pct
+    putaway_pct <- pitch_tot$putaway_pct
+
+    avg_ev <- pa_tot$avg_ev
+    hard_hit_pct <- pa_tot$hardhit_pct
+    total_bbe <- pa_tot$bbe_n
+
+    section_header <- function(txt) {
+      tags$div(
+        style = paste(
+          "margin:10px 0 6px 0;",
+          "padding:6px 8px;",
+          "border-left:4px solid rgba(128,0,0,0.9);", # maroon accent
+          "background:rgba(0,0,0,0.03);",
+          "border-radius:10px;",
+          "font-size:12px;",
+          "font-weight:800;",
+          "letter-spacing:0.02em;",
+          "color:#1f2933;" # darker
+        ),
+        txt
+      )
+    }
+
+    tags$div(
+      style = "display:grid; grid-template-columns:1fr; gap:10px; margin-top:10px;",
+
+      section_header("Usage"),
+      kpi_mini("Pitches", format(total_pitches, big.mark = ",")),
+      kpi_mini("PA-ending", format(total_pas, big.mark = ",")),
+      kpi_mini("BBE", format(total_bbe, big.mark = ",")),
+
+      section_header("Attack"),
+      kpi_mini("Zone%", scales::label_percent(accuracy = 0.1)(zone_pct)),
+      kpi_mini(
+        "First-pitch strike%",
+        scales::label_percent(accuracy = 0.1)(fps_pct)
+      ),
+      kpi_mini("CSW%", scales::label_percent(accuracy = 0.1)(csw_pct)),
+      kpi_mini("Whiff%", scales::label_percent(accuracy = 0.1)(whiff_pct)),
+      kpi_mini("PutAway%", scales::label_percent(accuracy = 0.1)(putaway_pct)),
+      kpi_mini("K%", scales::label_percent(accuracy = 0.1)(k_pct)),
+      kpi_mini("BB%", scales::label_percent(accuracy = 0.1)(bb_pct)),
+
+      section_header("Contact"),
+      kpi_mini(
+        "Avg EV",
+        scales::label_number(accuracy = 0.1, suffix = " mph")(avg_ev)
+      ),
+      kpi_mini("HardHit%", scales::label_percent(accuracy = 0.1)(hard_hit_pct))
+    )
+  })
+
+  output$pitchlab_movement <- renderPlotly({
+    tbl <- pitchlab_data()
+    validate(need(
+      nrow(tbl) > 0,
+      "No Statcast pitching data available for this range."
+    ))
+    plot_pitch_movement(tbl, ellipses = TRUE)
+  })
+
+  output$pitchlab_velocity <- renderPlotly({
+    tbl <- pitchlab_data()
+    validate(need(
+      nrow(tbl) > 0,
+      "No Statcast pitching data available for this range."
+    ))
+    plot_pitch_velocity(tbl)
   })
 }

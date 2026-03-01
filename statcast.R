@@ -114,8 +114,63 @@ summarise_pitch_level <- function(tbl) {
     )
 }
 
-summarise_pa_ending <- function(tbl) {
-  d_last <- tbl |>
+summarise_pitch_attack <- function(tbl) {
+  whiff_desc <- c("swinging_strike", "swinging_strike_blocked", "foul_tip")
+
+  strike_desc <- c(
+    "called_strike",
+    "swinging_strike",
+    "swinging_strike_blocked",
+    "foul",
+    "foul_tip",
+    "foul_bunt",
+    "hit_into_play",
+    "hit_into_play_no_out",
+    "hit_into_play_score"
+  )
+
+  d <- tbl |>
+    tibble::as_tibble() |>
+    dplyr::filter(!is.na(pitch_name), pitch_name != "") |>
+    dplyr::mutate(
+      is_whiff = !is.na(description) & description %in% whiff_desc,
+      is_called_strike = !is.na(description) & description == "called_strike",
+      in_zone = !is.na(zone) & zone %in% 1:9,
+      is_fps_pitch = !is.na(balls) &
+        !is.na(strikes) &
+        balls == 0 &
+        strikes == 0,
+      is_fps_strike = (is_fps_pitch %in% TRUE) &
+        ((!is.na(type) & type == "S") |
+          (!is.na(description) & description %in% strike_desc))
+    )
+
+  zone_pct <- if (nrow(d) == 0) NA_real_ else mean(d$in_zone, na.rm = TRUE)
+  csw_pct <- if (nrow(d) == 0) {
+    NA_real_
+  } else {
+    mean((d$is_called_strike | d$is_whiff), na.rm = TRUE)
+  }
+
+  fps_pct <- {
+    fps_n <- sum(d$is_fps_pitch %in% TRUE, na.rm = TRUE)
+    if (fps_n == 0) {
+      NA_real_
+    } else {
+      sum(d$is_fps_strike %in% TRUE, na.rm = TRUE) / fps_n
+    }
+  }
+
+  tibble::tibble(
+    pitches = nrow(d),
+    zone_pct = zone_pct,
+    csw_pct = csw_pct,
+    fps_pct = fps_pct
+  )
+}
+
+summarise_pa_last <- function(tbl) {
+  tbl |>
     tibble::as_tibble() |>
     dplyr::filter(
       !is.na(game_pk),
@@ -128,8 +183,13 @@ summarise_pa_ending <- function(tbl) {
     dplyr::slice_max(pitch_number, with_ties = FALSE) |>
     dplyr::ungroup() |>
     dplyr::filter(
-      (!is.na(events) & events != "") | (!is.na(type) & type == "X")
+      (!is.na(type) & type == "X") |
+        (!is.na(events) & events != "")
     )
+}
+
+summarise_pa_ending <- function(tbl) {
+  d_last <- summarise_pa_last(tbl)
 
   is_so <- !is.na(d_last$events) &
     d_last$events %in% c("strikeout", "strikeout_double_play")
@@ -475,7 +535,7 @@ plot_pitch_movement <- function(tbl, savant_view = TRUE, ellipses = FALSE) {
     plotly::config(displayModeBar = FALSE)
 }
 
-plot_velocity_by_pitch_type <- function(tbl) {
+plot_pitch_velocity <- function(tbl) {
   velo <- tbl |>
     tibble::as_tibble() |>
     dplyr::filter(
