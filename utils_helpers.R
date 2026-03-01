@@ -140,12 +140,30 @@ GUTS_cache <- function() {
   readRDS("www/data/guts.rds")
 }
 
-getCurrentSeason <- function() {
-  if (format(Sys.Date(), "%m") == "04") {
-    format(Sys.Date(), "%Y")
+getCurrentSeason <- function(date = Sys.Date(), opening_day = NULL) {
+  date <- as.Date(date)
+  year <- as.integer(format(date, "%Y"))
+
+  getLastThursdayInMarch <- function(y) {
+    last_day_march <- as.Date(sprintf("%d-03-31", y))
+    weekday <- as.POSIXlt(last_day_march)$wday
+    days_since_thursday <- (weekday - 4) %% 7
+
+    last_day_march - days_since_thursday
+  }
+
+  opening_day_date <- if (is.null(opening_day)) {
+    getLastThursdayInMarch(year)
   } else {
-    as.integer(format(Sys.Date(), "%Y")) - 1
+    as.Date(sprintf("%d-%s", year, opening_day))
+  }
+
+  if (date < opening_day_date) {
+    year - 1L
+  } else {
+    year
   }
 }
+
 
 `%||%` <- function(a, b) if (!is.null(a)) a else b
