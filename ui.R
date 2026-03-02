@@ -127,18 +127,25 @@ ui <- function(request) {
           display: flex;
           flex-direction: column;
           height: 100%;
-          min-height: 0;          /* crucial */
+          min-height: 0;
         }
 
         /* Summary area scrolls instead of overflowing the card */
         .sidebar-summary {
           flex: 1;
-          min-height: 0;          /* crucial */
+          min-height: 0;
           overflow-y: auto;
           padding-top: 10px;
         }
 
-        /* Optional: tighten spacing of inputs inside sidebar */
+        /* Scroll the whole sidebar card content (inputs + summary) */
+       .sidebar-scroll {
+         flex: 1;
+         min-height: 0;
+         overflow-y: auto;
+         padding-right: 6px; /* avoids scrollbar covering content */
+       }
+
         .sidebar-card .form-group { margin-bottom: 8px; }
         .sidebar-card .selectize-control { margin-bottom: 8px; }
       "
@@ -300,26 +307,26 @@ ui <- function(request) {
                         # Sidebar
                         shiny::div(
                           class = "panel-card sidebar-card",
-                          shiny::dateRangeInput(
-                            "contact_dates",
-                            "Date range",
-                            start = Sys.Date() - 30,
-                            end = Sys.Date()
-                          ),
-                          shiny::selectizeInput(
-                            "contact_pitch_type",
-                            "Pitch type",
-                            choices = "All",
-                            multiple = FALSE
-                          ),
-                          shiny::selectizeInput(
-                            "contact_bb_type",
-                            "Batted-ball type",
-                            choices = "All",
-                            multiple = FALSE
-                          ),
                           shiny::div(
-                            class = "sidebar-summary",
+                            class = "sidebar-scroll",
+                            shiny::dateRangeInput(
+                              "contact_dates",
+                              "Date range",
+                              start = Sys.Date() - 30,
+                              end = Sys.Date()
+                            ),
+                            shiny::selectizeInput(
+                              "contact_pitch_type",
+                              "Pitch type",
+                              choices = "All",
+                              multiple = FALSE
+                            ),
+                            shiny::selectizeInput(
+                              "contact_bb_type",
+                              "Batted-ball type",
+                              choices = "All",
+                              multiple = FALSE
+                            ),
                             shiny::uiOutput("contact_summary")
                           )
                         ),
@@ -357,60 +364,60 @@ ui <- function(request) {
 
                         shiny::div(
                           class = "panel-card sidebar-card",
-                          shiny::dateRangeInput(
-                            "pitchlab_dates",
-                            "Date range",
-                            start = Sys.Date() - 30,
-                            end = Sys.Date()
-                          ),
-                          shiny::selectizeInput(
-                            "pitchlab_pitch_type",
-                            "Pitch type",
-                            choices = "All",
-                            multiple = FALSE
-                          ),
-                          shiny::selectizeInput(
-                            "pitchlab_count_state",
-                            "Count state",
-                            choices = c("All", "Ahead", "Even", "Behind"),
-                            selected = "All",
-                            multiple = FALSE
-                          ),
-                          shiny::selectizeInput(
-                            "pitchlab_tto",
-                            "Times through order",
-                            choices = c("All", "1", "2", "3+"),
-                            selected = "All",
-                            multiple = FALSE
-                          ),
-                          shiny::selectizeInput(
-                            "pitchlab_batter_hand",
-                            "Batter handedness",
-                            choices = c("All", "L", "R"),
-                            selected = "All",
-                            multiple = FALSE
-                          ),
-                          shiny::selectizeInput(
-                            "pitchlab_zone_filter",
-                            "Zone filter",
-                            choices = c("All", "In Zone", "Out of Zone"),
-                            selected = "All",
-                            multiple = FALSE
-                          ),
-                          shiny::selectizeInput(
-                            "pitchlab_runners",
-                            "Base state",
-                            choices = c("All", "Bases Empty", "Runners On"),
-                            selected = "All",
-                            multiple = FALSE
-                          ),
-                          shiny::checkboxInput(
-                            "pitchlab_two_strike",
-                            "Two-strike pitches only",
-                            value = FALSE
-                          ),
                           shiny::div(
-                            class = "sidebar-summary",
+                            class = "sidebar-scroll",
+                            shiny::dateRangeInput(
+                              "pitchlab_dates",
+                              "Date range",
+                              start = Sys.Date() - 30,
+                              end = Sys.Date()
+                            ),
+                            shiny::selectizeInput(
+                              "pitchlab_pitch_type",
+                              "Pitch type",
+                              choices = "All",
+                              multiple = FALSE
+                            ),
+                            shiny::selectizeInput(
+                              "pitchlab_count_state",
+                              "Count state",
+                              choices = c("All", "Ahead", "Even", "Behind"),
+                              selected = "All",
+                              multiple = FALSE
+                            ),
+                            shiny::selectizeInput(
+                              "pitchlab_tto",
+                              "Times through order",
+                              choices = c("All", "1", "2", "3+"),
+                              selected = "All",
+                              multiple = FALSE
+                            ),
+                            shiny::selectizeInput(
+                              "pitchlab_batter_hand",
+                              "Batter handedness",
+                              choices = c("All", "L", "R"),
+                              selected = "All",
+                              multiple = FALSE
+                            ),
+                            shiny::selectizeInput(
+                              "pitchlab_zone_filter",
+                              "Zone filter",
+                              choices = c("All", "In Zone", "Out of Zone"),
+                              selected = "All",
+                              multiple = FALSE
+                            ),
+                            shiny::selectizeInput(
+                              "pitchlab_runners",
+                              "Base state",
+                              choices = c("All", "Bases Empty", "Runners On"),
+                              selected = "All",
+                              multiple = FALSE
+                            ),
+                            shiny::checkboxInput(
+                              "pitchlab_two_strike",
+                              "Two-strike pitches only",
+                              value = FALSE
+                            ),
                             shiny::uiOutput("pitchlab_summary")
                           )
                         ),
