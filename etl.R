@@ -8,7 +8,7 @@ source("players.R")
 source("stats.R")
 
 # Initialize the folder for data feeds.
-dir.create("www/data", FALSE)
+dir.create("www/data", FALSE, recursive = TRUE)
 
 active_players <- teamIds() |> getRoster()
 
