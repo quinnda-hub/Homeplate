@@ -5,23 +5,30 @@
     paste0("v1/teams/", teamId, "/roster?rosterType=", roster)
 
   team <- GET(paste0(base, end)) |> content()
-  # specifying `integer(1)` tells vapply we're expecting individual integer
-  # values
-  vapply(seq_along(team[["roster"]]),
-         \(x) team[["roster"]][[x]][["person"]][["id"]],
-         FUN.VALUE = integer(1))
 
-  sapply(seq_along(team[["roster"]]),
-         \(x) {
-           player_id <- team[["roster"]][[x]][["person"]][["id"]];
-           team_id <- team[["roster"]][[x]][["parentTeamId"]];
-           name <- team[["roster"]][[x]][["person"]][["fullName"]];
-           jersey <- team[["roster"]][[x]][["person"]][["jerseyNumber"]];
-           position <- team[["roster"]][[x]][["position"]][["name"]];
-           status <- team[["roster"]][[x]][["status"]][["description"]];
-           data.table(player_id = player_id, team_id = team_id, name = name,
-                      jersey = jersey, position = position, status = status)
-         }, simplify = FALSE) |>
+  # Expected MLB Stats API roster fields: person(id, fullName, jerseyNumber),
+  # parentTeamId, position(name), and status(description).
+  if (length(team[["roster"]]) == 0) {
+    return(data.table(
+      player_id = integer(),
+      team_id = integer(),
+      name = character(),
+      jersey = character(),
+      position = character(),
+      status = character()
+    ))
+  }
+
+  lapply(team[["roster"]], \(player) {
+    data.table(
+      player_id = player[["person"]][["id"]],
+      team_id = player[["parentTeamId"]],
+      name = player[["person"]][["fullName"]],
+      jersey = player[["person"]][["jerseyNumber"]],
+      position = player[["position"]][["name"]],
+      status = player[["status"]][["description"]]
+    )
+  }) |>
     rbindlist(fill = TRUE)
 }
 
@@ -39,27 +46,38 @@ getRoster <- function(teamId, roster = "40Man") {
     GET(Reduce(paste0, paste0(playerId, ","), paste0(base, end))) |> content()
 
   player <-
-    sapply(seq_along(player[["people"]]), \(x) player[["people"]][[x]] |>
-             as.data.table(), simplify = FALSE) |> rbindlist(fill = TRUE)
+    sapply(
+      seq_along(player[["people"]]),
+      \(x) {
+        player[["people"]][[x]] |>
+          as.data.table()
+      },
+      simplify = FALSE
+    ) |>
+    rbindlist(fill = TRUE)
 
-  player[, `:=` (
-    primaryPosition = primaryPosition[[2]],
-    batSide = batSide[[2]],
-    pitchHand = pitchHand[[2]]
-  ), by = id][!duplicated(id),]
+  player[,
+    `:=`(
+      primaryPosition = primaryPosition[[2]],
+      batSide = batSide[[2]],
+      pitchHand = pitchHand[[2]]
+    ),
+    by = id
+  ][!duplicated(id), ]
 }
 
 playerInfo <- function(playerId) {
   info <-
     Map(.playerInfo, chunk(playerId, 500)) |> rbindlist(fill = TRUE)
 
-  info[, `:=` (
+  info[, `:=`(
     primaryPosition = unlist(primaryPosition),
     batSide = unlist(batSide),
     pitchHand = unlist(pitchHand),
     birthDate = as.Date(birthDate),
     mlbDebutDate = as.Date(mlbDebutDate)
-  )] |> janitor::clean_names()
+  )] |>
+    janitor::clean_names()
 }
 
 # this function will retrieve information on all free agents declared for a
@@ -70,41 +88,46 @@ playerInfo <- function(playerId) {
 
   fas <- GET(paste0(base, end)) |> content()
 
-  sapply(fas[["freeAgents"]],
-         \(i) {
-           n <- i[["player"]][["fullName"]]
+  sapply(
+    fas[["freeAgents"]],
+    \(i) {
+      n <- i[["player"]][["fullName"]]
 
-           e <- i[["player"]][["id"]]
+      e <- i[["player"]][["id"]]
 
-           p <- i[["position"]][["abbreviation"]]
+      p <- i[["position"]][["abbreviation"]]
 
-           o <- i[["originalTeam"]][["name"]]
+      o <- i[["originalTeam"]][["name"]]
 
-           c <- i[["newTeam"]][["name"]]
+      c <- i[["newTeam"]][["name"]]
 
-           d <- i[["dateDeclared"]]
+      d <- i[["dateDeclared"]]
 
-           s <- i[["dateSigned"]]
+      s <- i[["dateSigned"]]
 
-           g <- i[["notes"]]
+      g <- i[["notes"]]
 
-           data.table(
-             id = e,
-             name = n,
-             position = p,
-             original_team = o,
-             new_team = c,
-             date_declared = d,
-             date_signed = s,
-             notes = g
-           )
-         },
-         simplify = FALSE) |> rbindlist(fill = TRUE)
+      data.table(
+        id = e,
+        name = n,
+        position = p,
+        original_team = o,
+        new_team = c,
+        date_declared = d,
+        date_signed = s,
+        notes = g
+      )
+    },
+    simplify = FALSE
+  ) |>
+    rbindlist(fill = TRUE)
 }
 
 freeAgents <- function(season) {
   fas <- .freeAgents(season)
-  fas[, `:=` (date_declared = as.Date(date_declared),
-              date_signed = as.Date(date_signed))]
+  fas[, `:=`(
+    date_declared = as.Date(date_declared),
+    date_signed = as.Date(date_signed)
+  )]
   fas
 }
