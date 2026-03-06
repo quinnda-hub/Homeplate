@@ -1,67 +1,103 @@
 gameScore <- function(dt) {
-  #' `innings_pitched` is a character vector separated by a period.
-  #' Each number before the period denotes one inning pitched (three outs), and
-  #' each number after denotes just a singular out.
-  innings <- strsplit(dt$innings_pitched, ".", fixed = TRUE)
-  #' Complete innings
-  ci <- Map(\(x) x[[1]], innings) |> as.numeric()
-  #' Partial innings
-  pi <- Map(\(x) x[[1]], innings) |> as.numeric()
+  # `innings_pitched` is a character vector separated by a period.
+  # Each number before the period denotes completed innings, and each
+  # number after denotes outs (0, 1, or 2).
+  innings <- strsplit(as.character(dt$innings_pitched), ".", fixed = TRUE)
+  # Complete innings
+  ci <- sapply(innings, \(x) as.numeric(x[[1]]))
+  # Partial outs (defaults to 0 when missing)
+  pi <- sapply(innings, \(x) {
+    if (length(x) < 2 || is.na(x[[2]]) || x[[2]] == "") {
+      0
+    } else {
+      as.numeric(x[[2]])
+    }
+  })
 
   ### Game score is calculated as follows: ---
 
-  #' One point is added for each inning pitched
-  outs_bonus <- dt$outs
+  #' One point is added for each out recorded
+  parsed_outs <- (ci * 3) + pi
+  outs_bonus <- fifelse(is.na(dt$outs), parsed_outs, dt$outs)
 
-  #' Two points are added for each out after the fourth inning
-  fourth_bonus <- (ci - 4) * 2
+  # Two points are added for each inning completed after the fourth inning
+  fourth_bonus <- pmax(ci - 4, 0) * 2
 
-  #' One point is added for each strikeout
+  # One point is added for each strikeout
   so_bonus <- dt$strike_outs
 
-  #' Subtract two points for each hit allowed
+  # Subtract two points for each hit allowed
   hit_penalty <- dt$hits * 2
 
-  #' Subtract four points for each earned run
+  # Subtract four points for each earned run
   er_penalty <- dt$earned_runs * 4
 
-  #' Subtract two points for each unearned run
+  # Subtract two points for each unearned run
   run_penalty <- (dt$runs - dt$earned_runs) * 2
 
-  #' Subract one point for each walk
+  # Subract one point for each walk
   bb_penalty <- dt$base_on_balls
 
-  50 + outs_bonus + fourth_bonus + so_bonus - hit_penalty - er_penalty -
-    run_penalty - bb_penalty
+  50 +
+    outs_bonus +
+    fourth_bonus +
+    so_bonus -
+    hit_penalty -
+    er_penalty -
+    run_penalty -
+    bb_penalty
 }
 
 convertInningsPitched <- function(ip) {
-  complete <- substr(ip, 1, 1)
-  partial <- substr(ip, 3, 3)
-  partial <- fifelse(partial == "2", ".666666",
-                     fifelse(partial == "1", ".333333", ".0"))
+  parts <- strsplit(as.character(ip), ".", fixed = TRUE)
 
-  paste0(complete, partial)
+  complete <- sapply(parts, \(x) {
+    if (length(x) < 1 || is.na(x[[1]]) || x[[1]] == "") {
+      0
+    } else {
+      as.numeric(x[[1]])
+    }
+  })
+
+  partial <- sapply(parts, \(x) {
+    if (length(x) < 2 || is.na(x[[2]]) || x[[2]] == "") {
+      0
+    } else {
+      as.numeric(x[[2]])
+    }
+  })
+
+  as.character(complete + (partial / 3))
 }
 
 # These functions will calculate ERA and FIP on a game by game basis.
 FIP <- function(stats) {
   guts <- GUTS_cache()
   dt <-
-    merge(stats[, season := as.integer(season)], guts[, .(season, cFIP)],
-          by.x = "season",
-          by.y = "season",
-          all.x = TRUE)
-  dt[, fip := ((((13 * home_runs) + (
-    3 * (base_on_balls + hit_by_pitch)
-  ) - (2 * strike_outs)) / as.numeric(innings_pitched)) + cFIP) |> round(2)][]
+    merge(
+      stats[, season := as.integer(season)],
+      guts[, .(season, cFIP)],
+      by.x = "season",
+      by.y = "season",
+      all.x = TRUE
+    )
+  dt[,
+    fip := ((((13 * home_runs) +
+      (3 * (base_on_balls + hit_by_pitch)) -
+      (2 * strike_outs)) /
+      as.numeric(innings_pitched)) +
+      cFIP) |>
+      round(2)
+  ][]
 }
 
 ERA <- function(stats) {
   dt <- copy(stats)
 
-  dt[, era := (9 * (as.numeric(earned_runs) / as.numeric(innings_pitched))) |>
-       round(2)][]
+  dt[,
+    era := (9 * (as.numeric(earned_runs) / as.numeric(innings_pitched))) |>
+      round(2)
+  ][]
 }
 
 # this function will get year by year stats for any number of players
@@ -82,40 +118,46 @@ ERA <- function(stats) {
   player <- GET(paste0(base, end)) |> content()
 
   aux <- function(players) {
-    player <- sapply(players[["stats"]],
-                     \(i) {
-                       sapply(i[["splits"]],
-                              \(j) {
-                                s <- j[["season"]]
+    player <- sapply(
+      players[["stats"]],
+      \(i) {
+        sapply(
+          i[["splits"]],
+          \(j) {
+            s <- j[["season"]]
 
-                                id <- j[["player"]][["id"]]
+            id <- j[["player"]][["id"]]
 
-                                n <- j[["player"]][["fullName"]]
+            n <- j[["player"]][["fullName"]]
 
-                                t <-
-                                  if (is.null(j[["team"]][["name"]])) {
-                                    "Combined"
-                                  } else {
-                                    j[["team"]][["name"]]
-                                  }
+            t <-
+              if (is.null(j[["team"]][["name"]])) {
+                "Combined"
+              } else {
+                j[["team"]][["name"]]
+              }
 
-                                ti <-
-                                  if (is.null(j[["team"]][["id"]])) {
-                                    "Combined"
-                                  } else {
-                                    j[["team"]][["id"]]
-                                  }
+            ti <-
+              if (is.null(j[["team"]][["id"]])) {
+                "Combined"
+              } else {
+                j[["team"]][["id"]]
+              }
 
-                                c(list(id = id),
-                                  list(name = n),
-                                  list(season = s),
-                                  list(team = t),
-                                  list(team_id = ti),
-                                  j[["stat"]])
-                              },
-                              simplify = FALSE)
-                     },
-                     simplify = FALSE)
+            c(
+              list(id = id),
+              list(name = n),
+              list(season = s),
+              list(team = t),
+              list(team_id = ti),
+              j[["stat"]]
+            )
+          },
+          simplify = FALSE
+        )
+      },
+      simplify = FALSE
+    )
 
     sapply(player, rbindlist, fill = TRUE, simplify = FALSE)
   }
@@ -142,23 +184,25 @@ yearStats <- function(playerId, group = "hitting") {
   # successful
   players <-
     Map(.yearStats, chunk(playerId, 500), group = group) |>
-    rbindlist(fill = TRUE) |> janitor::clean_names()
+    rbindlist(fill = TRUE) |>
+    janitor::clean_names()
 
   # If the player has no hitting, pitching, or fielding data - skip them.
   if (is.na(players[1, season])) {
     players[]
   } else {
-    for (col in names(players))
+    for (col in names(players)) {
       set(
         players,
         i = which(players[[col]] %in% c(".---", "-.--")),
         j = col,
         value = NA
       )
+    }
     if (group %in% c("hitting", "pitching")) {
-      for (col in c("avg", "obp", "slg"))
-        set(players, j = col,
-            value = as.numeric(players[[col]]))
+      for (col in c("avg", "obp", "slg")) {
+        set(players, j = col, value = as.numeric(players[[col]]))
+      }
     }
     if (group == "pitching") {
       players <- FIP(players)
@@ -188,45 +232,48 @@ yearStats <- function(playerId, group = "hitting") {
   players <- GET(paste0(base, end)) |> content()
 
   aux <- function(players) {
-    player <- sapply(players[["stats"]][[1]][["splits"]],
-                     \(i) {
-                       n <- i[["player"]][["fullName"]]
+    player <- sapply(
+      players[["stats"]][[1]][["splits"]],
+      \(i) {
+        n <- i[["player"]][["fullName"]]
 
-                       d <- i[["date"]]
+        d <- i[["date"]]
 
-                       id <- i[["player"]][["id"]]
+        id <- i[["player"]][["id"]]
 
-                       s <- i[["season"]]
+        s <- i[["season"]]
 
-                       t <- i[["team"]][["name"]]
+        t <- i[["team"]][["name"]]
 
-                       ti <- i[["team"]][["id"]]
-                       o <- i[["opponent"]][["name"]]
+        ti <- i[["team"]][["id"]]
+        o <- i[["opponent"]][["name"]]
 
-                       oi <- i[["opponent"]][["id"]]
+        oi <- i[["opponent"]][["id"]]
 
-                       g <- i[["game"]][["gamePk"]]
+        g <- i[["game"]][["gamePk"]]
 
-                       h <- i[["isHome"]]
+        h <- i[["isHome"]]
 
-                       w <- i[["isWin"]]
+        w <- i[["isWin"]]
 
-                       c(
-                         list(game_pk = g),
-                         list(date = d),
-                         list(player_id = id),
-                         list(name = n),
-                         list(team = t),
-                         list(team_id = ti),
-                         list(season = s),
-                         list(home = h),
-                         list(win = w),
-                         list(opponent = o),
-                         list(opponent_id = oi),
-                         i[["stat"]]
-                       )
-                     },
-                     simplify = FALSE) |> rbindlist()
+        c(
+          list(game_pk = g),
+          list(date = d),
+          list(player_id = id),
+          list(name = n),
+          list(team = t),
+          list(team_id = ti),
+          list(season = s),
+          list(home = h),
+          list(win = w),
+          list(opponent = o),
+          list(opponent_id = oi),
+          i[["stat"]]
+        )
+      },
+      simplify = FALSE
+    ) |>
+      rbindlist()
   }
 
   sapply(players[["people"]], aux, simplify = FALSE) |> rbindlist(fill = TRUE)
@@ -234,34 +281,39 @@ yearStats <- function(playerId, group = "hitting") {
 
 gameLogs <- function(playerId, season, group = "hitting") {
   logs <-
-    Map(.gameLogs,
-        chunk(playerId, 500),
-        season = season,
-        group = group) |>
-    rbindlist(fill = TRUE) |> janitor::clean_names()
+    Map(.gameLogs, chunk(playerId, 500), season = season, group = group) |>
+    rbindlist(fill = TRUE) |>
+    janitor::clean_names()
 
   logs[, "date" := as.Date(date)]
 
-  for (col in names(logs))
-    set(logs,
-        i = which(logs[[col]] %in% c(".---", "-.--")),
-        j = col,
-        value = NA)
+  for (col in names(logs)) {
+    set(
+      logs,
+      i = which(logs[[col]] %in% c(".---", "-.--")),
+      j = col,
+      value = NA
+    )
+  }
 
   if (group == "pitching") {
-    logs[, `:=` (game_score = gameScore(logs),
-                 innings_pitched = convertInningsPitched(innings_pitched))]
+    logs[, `:=`(
+      game_score = gameScore(logs),
+      innings_pitched = convertInningsPitched(innings_pitched)
+    )]
     logs <- FIP(logs)
   }
 
   logs[date < Sys.Date()]
 }
 
-playerSabermetricsOne <- function(player_id,
-                                  season,
-                                  group = c("hitting", "pitching"),
-                                  sportId = 1,
-                                  gameType = "R") {
+playerSabermetricsOne <- function(
+  player_id,
+  season,
+  group = c("hitting", "pitching"),
+  sportId = 1,
+  gameType = "R"
+) {
   stopifnot(length(player_id) == 1)
 
   group <- match.arg(group, several.ok = TRUE)
@@ -271,7 +323,7 @@ playerSabermetricsOne <- function(player_id,
 
     resp <- httr::RETRY(
       verb = "GET",
-      url  = url,
+      url = url,
       query = list(
         stats = "sabermetrics",
         group = g,
@@ -299,15 +351,15 @@ playerSabermetricsOne <- function(player_id,
 
     rows <- lapply(splits, function(s) {
       meta <- list(
-        player_id   = s$player$id %||% player_id,
+        player_id = s$player$id %||% player_id,
         player_name = s$player$fullName %||% NA_character_,
-        season      = s$season %||% as.character(season),
-        group       = g,
-        team_id     = s$team$id %||% NA_integer_,
-        team        = s$team$name %||% NA_character_,
-        league_id   = s$league$id %||% NA_integer_,
-        league      = s$league$name %||% NA_character_,
-        game_type   = s$gameType %||% NA_character_
+        season = s$season %||% as.character(season),
+        group = g,
+        team_id = s$team$id %||% NA_integer_,
+        team = s$team$name %||% NA_character_,
+        league_id = s$league$id %||% NA_integer_,
+        league = s$league$name %||% NA_character_,
+        game_type = s$gameType %||% NA_character_
       )
 
       data.table::as.data.table(c(meta, s$stat))
@@ -316,11 +368,22 @@ playerSabermetricsOne <- function(player_id,
     dt <- data.table::rbindlist(rows, fill = TRUE)
     dt <- janitor::clean_names(dt)
 
-    keep_chr <- c("player_name", "season", "group", "team", "league", "game_type")
+    keep_chr <- c(
+      "player_name",
+      "season",
+      "group",
+      "team",
+      "league",
+      "game_type"
+    )
     num_cols <- setdiff(names(dt), keep_chr)
     for (col in num_cols) {
       if (is.character(dt[[col]])) {
-        suppressWarnings(data.table::set(dt, j = col, value = as.numeric(dt[[col]])))
+        suppressWarnings(data.table::set(
+          dt,
+          j = col,
+          value = as.numeric(dt[[col]])
+        ))
       }
     }
 
@@ -332,16 +395,18 @@ playerSabermetricsOne <- function(player_id,
   out[, team_id := as.character(team_id)]
   out[, `:=`(
     team_id = fifelse(is.na(team_id), "Combined", team_id),
-    team    = fifelse(is.na(team), "Combined", team)
+    team = fifelse(is.na(team), "Combined", team)
   )]
   out[]
 }
 
-playerSabermetricsMany <- function(player_seasons_dt,
-                                   groups = c("hitting", "pitching"),
-                                   sportId = 1,
-                                   gameType = "R",
-                                   sleep_s = 0.05) {
+playerSabermetricsMany <- function(
+  player_seasons_dt,
+  groups = c("hitting", "pitching"),
+  sportId = 1,
+  gameType = "R",
+  sleep_s = 0.05
+) {
   stopifnot(data.table::is.data.table(player_seasons_dt))
   stopifnot(all(c("id", "season") %in% names(player_seasons_dt)))
 
@@ -350,15 +415,17 @@ playerSabermetricsMany <- function(player_seasons_dt,
 
   out <- data.table::rbindlist(
     lapply(seq_len(nrow(reqs)), function(i) {
-      if (sleep_s > 0) Sys.sleep(sleep_s)
+      if (sleep_s > 0) {
+        Sys.sleep(sleep_s)
+      }
 
       tryCatch(
         playerSabermetricsOne(
           player_id = reqs$id[i],
-          season    = reqs$season[i],
-          group     = groups,
-          sportId   = sportId,
-          gameType  = gameType
+          season = reqs$season[i],
+          group = groups,
+          sportId = sportId,
+          gameType = gameType
         ),
         error = function(e) data.table::data.table()
       )
@@ -368,4 +435,3 @@ playerSabermetricsMany <- function(player_seasons_dt,
 
   out[]
 }
-
