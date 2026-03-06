@@ -186,7 +186,7 @@ server <- function(input, output, session) {
       tolower(input$stat_search)
     }
 
-    if (input$stats == "Pitching") {
+    if (input$stats %in% c("Pitching", "Pitching Lab")) {
       plogs <- global_vals$pitching_logs()
       pitchingLogsPlot(
         plogs[player_id == input$player_search],

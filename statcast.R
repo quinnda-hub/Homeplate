@@ -433,6 +433,8 @@ plot_pitch_movement <- function(tbl, savant_view = TRUE, ellipses = FALSE) {
     mode = "markers",
     color = ~pitch_name,
     colors = pal,
+    split = ~pitch_name,
+    legendgroup = ~pitch_name,
     text = ~hv_velo,
     marker = list(opacity = 0.65),
     hovertemplate = paste(
@@ -505,6 +507,7 @@ plot_pitch_movement <- function(tbl, savant_view = TRUE, ellipses = FALSE) {
             y = ~ivb,
             type = "scatter",
             mode = "lines",
+            legendgroup = pt,
             showlegend = FALSE,
             inherit = FALSE,
             hoverinfo = "skip",
@@ -529,7 +532,7 @@ plot_pitch_movement <- function(tbl, savant_view = TRUE, ellipses = FALSE) {
         zeroline = TRUE,
         range = c(-25, 25)
       ),
-      legend = list(orientation = "h", y = -0.2),
+      legend = list(orientation = "h", y = -0.2, groupclick = "togglegroup"),
       hovermode = "closest"
     ) |>
     plotly::config(displayModeBar = FALSE)
