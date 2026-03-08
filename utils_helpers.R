@@ -41,23 +41,37 @@ searchList <- function(dt) {
 }
 
 qualified <- function(stats, stnds, group = "hitting") {
-  if (group == "hitting") {
-    metric <- "plate_appearances"
-    x <- 3.1
-  } else {
-    metric <- "innings_pitched"
-    x <- 1
+  ip_to_outs <- function(ip) {
+    ip <- as.character(ip)
+    parts <- tstrsplit(ip, ".", fixed = TRUE)
+    whole <- as.integer(parts[[1]])
+    frac <- as.integer(data.table::fifelse(is.na(parts[[2]]), "0", parts[[2]]))
+    whole * 3L + frac
   }
 
-  dt <- copy(stats[season == max(season)])
+  if (group == "hitting") {
+    metric <- "plate_appearances"
+    thresh_mult <- 3.1
+  } else {
+    metric <- "innings_pitched"
+    thresh_mult <- 1
+  }
+
+  dt <- data.table::copy(stats[season == max(season)])
+
   dt <- merge(
     dt,
-    stnds[, .(team, team_games = wins + losses)],
-    by = "team",
+    stnds[, list(team_id = as.character(id), team_games = wins + losses)],
+    by = "team_id",
     all.x = TRUE
   )
 
-  dt[get(metric) >= (team_games * x) |> floor()]
+  if (group == "pitching") {
+    dt[, ip_outs := ip_to_outs(get(metric))]
+    dt[ip_outs >= team_games * 3L * thresh_mult]
+  } else {
+    dt[get(metric) >= floor(team_games * thresh_mult)]
+  }
 }
 
 retry <- function(
