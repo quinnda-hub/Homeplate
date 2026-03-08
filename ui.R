@@ -167,15 +167,45 @@ ui <- function(request) {
       # ---------------- Standings ----------------
       shiny::tabPanel(
         "Standings",
-        shiny::fluidPage(
-          bslib::layout_column_wrap(
-            width = 1 / 2,
-            reactable::reactableOutput("al_east"),
-            reactable::reactableOutput("nl_east"),
-            reactable::reactableOutput("al_central"),
-            reactable::reactableOutput("nl_central"),
-            reactable::reactableOutput("al_west"),
-            reactable::reactableOutput("nl_west")
+        shiny::fluidRow(
+          shiny::column(
+            12,
+            shiny::div(
+              style = "display: flex; justify-content: flex-end;",
+              shiny::checkboxInput(
+                "show_leaderboards",
+                "Show league leaderboards",
+                value = FALSE
+              )
+            )
+          )
+        ),
+        shiny::fluidRow(
+          shiny::column(
+            3,
+            shiny::conditionalPanel(
+              "input.show_leaderboards",
+              reactable::reactableOutput("al_leaders")
+            )
+          ),
+          shiny::column(
+            6,
+            bslib::layout_column_wrap(
+              width = 1 / 2,
+              reactable::reactableOutput("al_east"),
+              reactable::reactableOutput("nl_east"),
+              reactable::reactableOutput("al_central"),
+              reactable::reactableOutput("nl_central"),
+              reactable::reactableOutput("al_west"),
+              reactable::reactableOutput("nl_west")
+            )
+          ),
+          shiny::column(
+            3,
+            shiny::conditionalPanel(
+              "input.show_leaderboards",
+              reactable::reactableOutput("nl_leaders")
+            )
           )
         )
       ),

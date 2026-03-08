@@ -110,6 +110,26 @@ server <- function(input, output, session) {
   output$nl_east <-
     renderReactable(standingsRctbl(global_vals$standings, "nl east"))
 
+  output$al_leaders <- renderReactable({
+    standingsLeadersRctbl(
+      global_vals$batting_stats(),
+      global_vals$pitching_stats(),
+      global_vals$standings,
+      league = "American League",
+      top_n = 3
+    )
+  })
+
+  output$nl_leaders <- renderReactable({
+    standingsLeadersRctbl(
+      global_vals$batting_stats(),
+      global_vals$pitching_stats(),
+      global_vals$standings,
+      league = "National League",
+      top_n = 3
+    )
+  })
+
   # Tables for player stats.
   output$batting_logs <- renderReactable({
     req(input$player_search)
