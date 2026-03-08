@@ -62,7 +62,7 @@ server <- function(input, output, session) {
   observe({
     updateSelectizeInput(
       inputId = "player_search",
-      server = TRUE,
+      server = FALSE,
       choices = global_vals$active_players() |> searchList()
     )
   })
