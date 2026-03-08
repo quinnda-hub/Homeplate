@@ -486,94 +486,231 @@ pitchingLogsRctbl <- function(logs) {
   )
 }
 
-pitchingStatsRctbl <- function(stats) {
-  abr <- teamIds() |>
-    as.data.table() |>
-    melt(
-      measure.vars = names(teamIds() |> as.data.table()),
-      variable.name = "team",
-      value.name = "team_id"
-    )
+pitchingStatsRctbl <- function(
+  stats,
+  stat_group = c(
+    "overview",
+    "run_prevention",
+    "discipline",
+    "contact",
+    "value"
+  )
+) {
+  stat_group <- match.arg(stat_group)
+
+  abr <- teamAbbreviations()
 
   dt <- copy(stats)
-  if (is.null(dt$games_started)) {
-    dt[, games_started := dt$games_played]
-  }
-  if (is.null(dt$saves)) {
-    dt[, saves := 0]
+
+  dt <- ensureCols(
+    dt,
+    c(
+      "games_started",
+      "saves",
+      "holds",
+      "whip",
+      "hits_per9inn",
+      "runs_scored_per9",
+      "strike_percentage",
+      "whiff_percentage",
+      "strikeouts_minus_walks_percentage",
+      "walks_per_plate_appearance",
+      "strikeouts_per_plate_appearance",
+      "ground_outs_to_airouts",
+      "fly_ball_percentage",
+      "gidp_percentage",
+      "balls_in_play",
+      "c_fip",
+      "fip",
+      "i.fip",
+      "xfip",
+      "era_minus",
+      "war"
+    )
+  )
+
+  if (all(is.na(dt$c_fip)) && ("cfip" %in% names(dt))) {
+    dt[, c_fip := cfip]
   }
 
-  dt <-
-    dt[, .(
-      season,
-      team_id,
-      games_played,
-      games_started,
-      wins,
-      losses,
-      saves,
-      innings_pitched,
-      walks_per9inn,
-      strikeouts_per9inn,
-      home_runs_per9,
-      home_runs_per_plate_appearance,
-      babip,
-      era,
-      i.fip,
-      xfip,
-      era_minus,
-      war
-    )]
+  dt[, `:=`(
+    k_pct = as.numeric(strikeouts_per_plate_appearance) * 100,
+    bb_pct = as.numeric(walks_per_plate_appearance) * 100,
+    k_minus_bb_pct = as.numeric(strikeouts_minus_walks_percentage) * 100
+  )]
 
-  # Pretty printing
-  for (col in c("era", "i.fip", "xfip")) {
+  group_cols <- list(
+    overview = c(
+      "season",
+      "team_id",
+      "games_played",
+      "games_started",
+      "innings_pitched",
+      "wins",
+      "losses",
+      "saves",
+      "holds",
+      "bb_pct",
+      "k_pct",
+      "era",
+      "i.fip",
+      "xfip",
+      "war"
+    ),
+    run_prevention = c(
+      "season",
+      "team_id",
+      "earned_runs",
+      "runs",
+      "era",
+      "whip",
+      "avg",
+      "obp",
+      "slg",
+      "ops",
+      "babip",
+      "hits_per9inn",
+      "runs_scored_per9",
+      "home_runs_per9"
+    ),
+    discipline = c(
+      "season",
+      "team_id",
+      "strike_outs",
+      "base_on_balls",
+      "strikeout_walk_ratio",
+      "bb_pct",
+      "k_pct",
+      "k_minus_bb_pct",
+      "strikeouts_per9inn",
+      "walks_per9inn",
+      "strike_percentage",
+      "whiff_percentage"
+    ),
+    contact = c(
+      "season",
+      "team_id",
+      "ground_outs",
+      "air_outs",
+      "ground_outs_to_airouts",
+      "fly_ball_percentage",
+      "gidp_percentage",
+      "balls_in_play",
+      "home_runs_per9",
+      "babip"
+    ),
+    value = c(
+      "season",
+      "team_id",
+      "c_fip",
+      "fip",
+      "i.fip",
+      "xfip",
+      "era_minus",
+      "war"
+    )
+  )
+
+  selected_cols <- group_cols[[stat_group]]
+  dt <- dt[, ..selected_cols]
+
+  for (col in intersect(c("era", "whip", "fip", "i.fip", "xfip"), names(dt))) {
     set(
       dt,
       j = col,
       value = scales::label_number(accuracy = 0.01)(as.numeric(dt[[col]]))
     )
   }
+  for (col in intersect(c("avg", "obp", "slg", "ops", "babip"), names(dt))) {
+    set(
+      dt,
+      j = col,
+      value = scales::label_number(accuracy = 0.001)(as.numeric(dt[[col]]))
+    )
+  }
+  for (col in intersect(
+    c(
+      "k_pct",
+      "bb_pct",
+      "k_minus_bb_pct",
+      "strike_percentage",
+      "whiff_percentage",
+      "fly_ball_percentage",
+      "gidp_percentage"
+    ),
+    names(dt)
+  )) {
+    set(
+      dt,
+      j = col,
+      value = scales::label_number(accuracy = 0.1)(as.numeric(dt[[col]]))
+    )
+  }
+  if ("war" %in% names(dt)) {
+    dt[, war := scales::label_number(accuracy = 0.1)(as.numeric(war))]
+  }
+  if ("era_minus" %in% names(dt)) {
+    dt[, era_minus := scales::label_number(accuracy = 1)(as.numeric(era_minus))]
+  }
 
-  dt[, era_minus := scales::label_number(accuracy = 3)(as.numeric(era_minus))]
-  dt[, war := scales::label_number(accuracy = 0.1)(as.numeric(war))]
+  column_labels <- list(
+    season = colDef(name = "Season", minWidth = 55),
+    team_id = colDef(
+      name = "Team",
+      cell = \(value) {
+        if (value == "Combined") {
+          "Combined"
+        } else {
+          abr[team_id == value, team]
+        }
+      },
+      minWidth = 65
+    ),
+    games_played = colDef(name = "G"),
+    games_started = colDef(name = "GS"),
+    innings_pitched = colDef(name = "IP"),
+    wins = colDef(name = "W"),
+    losses = colDef(name = "L"),
+    saves = colDef(name = "SV"),
+    holds = colDef(name = "HLD", minWidth = 45),
+    earned_runs = colDef(name = "ER"),
+    runs = colDef(name = "R"),
+    strike_outs = colDef(name = "SO"),
+    base_on_balls = colDef(name = "BB"),
+    strikeout_walk_ratio = colDef(name = "SO/BB", minWidth = 55),
+    walks_per9inn = colDef(name = "BB/9"),
+    strikeouts_per9inn = colDef(name = "SO/9"),
+    hits_per9inn = colDef(name = "H/9"),
+    runs_scored_per9 = colDef(name = "R/9"),
+    home_runs_per9 = colDef(name = "HR/9"),
+    avg = colDef(name = "AVG", minWidth = 55),
+    obp = colDef(name = "OBP", minWidth = 55),
+    slg = colDef(name = "SLG", minWidth = 55),
+    ops = colDef(name = "OPS", minWidth = 55),
+    babip = colDef(name = "BABIP", minWidth = 55),
+    era = colDef(name = "ERA"),
+    whip = colDef(name = "WHIP"),
+    i.fip = colDef(name = "FIP"),
+    xfip = colDef(name = "xFIP"),
+    c_fip = colDef(name = "cFIP"),
+    era_minus = colDef(name = "ERA-"),
+    k_pct = colDef(name = "K%", minWidth = 55),
+    bb_pct = colDef(name = "BB%", minWidth = 55),
+    k_minus_bb_pct = colDef(name = "K-BB%", minWidth = 60),
+    strike_percentage = colDef(name = "Strike%", minWidth = 60),
+    whiff_percentage = colDef(name = "Whiff%", minWidth = 60),
+    ground_outs = colDef(name = "GO"),
+    air_outs = colDef(name = "AO"),
+    ground_outs_to_airouts = colDef(name = "GO/AO", minWidth = 60),
+    fly_ball_percentage = colDef(name = "FB%", minWidth = 55),
+    gidp_percentage = colDef(name = "GIDP%", minWidth = 55),
+    balls_in_play = colDef(name = "BIP"),
+    war = colDef(name = "WAR")
+  )
 
   reactable::reactable(
     dt,
-    columns = list(
-      season = colDef(name = "Season", minWidth = 55),
-      team_id = colDef(
-        name = "Team",
-        cell = \(value) {
-          if (value == "Combined") {
-            "Combined"
-          } else {
-            abr[team_id == value, team]
-          }
-        },
-        minWidth = 65
-      ),
-      games_played = colDef(name = "G"),
-      games_started = colDef(name = "GS"),
-      wins = colDef(name = "W"),
-      losses = colDef(name = "L"),
-      saves = colDef(name = "SV"),
-      innings_pitched = colDef(name = "IP"),
-      walks_per9inn = colDef(name = "BB/9"),
-      strikeouts_per9inn = colDef(name = "SO/9"),
-      home_runs_per9 = colDef(name = "HR/9"),
-      home_runs_per_plate_appearance = colDef(
-        name = "HR%",
-        cell = function(value) {
-          as.numeric(value) * 100 |> round(2)
-        }
-      ),
-      babip = colDef(name = "BABIP"),
-      era = colDef(name = "ERA"),
-      i.fip = colDef(name = "FIP"),
-      xfip = colDef(name = "xFIP"),
-      era_minus = colDef(name = "ERA-"),
-      war = colDef(name = "WAR")
-    ),
+    columns = column_labels,
     defaultColDef = colDef(
       align = "center",
       na = "0",
