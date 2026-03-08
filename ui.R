@@ -265,12 +265,45 @@ ui <- function(request) {
                         ),
                         shiny::div(
                           class = "panel-card",
-                          reactable::reactableOutput(
-                            "batting_stats",
-                            height = "100%",
-                            width = "100%"
-                          ) |>
-                            shinycssloaders::withSpinner(color = "white")
+                          shiny::tabsetPanel(
+                            id = "batting_stats_tabs",
+                            shiny::tabPanel(
+                              "Overview",
+                              reactable::reactableOutput(
+                                "batting_stats_overview",
+                                height = "100%",
+                                width = "100%"
+                              ) |>
+                                shinycssloaders::withSpinner(color = "white")
+                            ),
+                            shiny::tabPanel(
+                              "Production",
+                              reactable::reactableOutput(
+                                "batting_stats_production",
+                                height = "100%",
+                                width = "100%"
+                              ) |>
+                                shinycssloaders::withSpinner(color = "white")
+                            ),
+                            shiny::tabPanel(
+                              "Discipline",
+                              reactable::reactableOutput(
+                                "batting_stats_discipline",
+                                height = "100%",
+                                width = "100%"
+                              ) |>
+                                shinycssloaders::withSpinner(color = "white")
+                            ),
+                            shiny::tabPanel(
+                              "Value",
+                              reactable::reactableOutput(
+                                "batting_stats_value",
+                                height = "100%",
+                                width = "100%"
+                              ) |>
+                                shinycssloaders::withSpinner(color = "white")
+                            )
+                          )
                         )
                       )
                     ),
@@ -290,13 +323,55 @@ ui <- function(request) {
                         ),
                         shiny::div(
                           class = "panel-card",
-                          reactable::reactableOutput(
-                            "pitching_stats",
-                            height = "100%",
-                            width = "100%"
-                          ) |>
-                            shinycssloaders::withSpinner(color = "white")
-                        ),
+                          shiny::tabsetPanel(
+                            id = "pitching_stats_tabs",
+                            shiny::tabPanel(
+                              "Overview",
+                              reactable::reactableOutput(
+                                "pitching_stats_overview",
+                                height = "100%",
+                                width = "100%"
+                              ) |>
+                                shinycssloaders::withSpinner(color = "white")
+                            ),
+                            shiny::tabPanel(
+                              "Run Prevention",
+                              reactable::reactableOutput(
+                                "pitching_stats_run_prevention",
+                                height = "100%",
+                                width = "100%"
+                              ) |>
+                                shinycssloaders::withSpinner(color = "white")
+                            ),
+                            shiny::tabPanel(
+                              "Discipline",
+                              reactable::reactableOutput(
+                                "pitching_stats_discipline",
+                                height = "100%",
+                                width = "100%"
+                              ) |>
+                                shinycssloaders::withSpinner(color = "white")
+                            ),
+                            shiny::tabPanel(
+                              "Contact",
+                              reactable::reactableOutput(
+                                "pitching_stats_contact",
+                                height = "100%",
+                                width = "100%"
+                              ) |>
+                                shinycssloaders::withSpinner(color = "white")
+                            ),
+                            shiny::tabPanel(
+                              "Value",
+                              reactable::reactableOutput(
+                                "pitching_stats_value",
+                                height = "100%",
+                                width = "100%"
+                              ) |>
+                                shinycssloaders::withSpinner(color = "white")
+                            )
+                          )
+                        )
                       )
                     ),
                     shiny::tabPanel(
