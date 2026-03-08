@@ -816,7 +816,7 @@ standingsRctbl <- function(dt, division) {
   )
 }
 
-standingsLeadersRctbl <- function(
+leadersRctbl <- function(
   batting_stats,
   pitching_stats,
   standings,
