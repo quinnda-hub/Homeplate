@@ -767,52 +767,73 @@ standingsRctbl <- function(dt, division) {
     stop("Please input valid division")
   }
 
-  standings <- dt
-  setcolorder(
+  standings <- data.table::copy(dt)
+  data.table::setcolorder(
     standings,
     c("team", "id", "wins", "losses", "pct", "gb", "last10")
   )
 
-  reactable(
+  reactable::reactable(
     standings,
     columns = list(
-      team = colDef(
-        cell = function(value) {
-          image <- img(
-            src = paste0("logos/", dt[team == value, id], ".svg"),
-            height = "24px",
-            alt = value
-          )
-          tagList(
-            div(
-              style = list(
-                display = "inline-block",
-                width = "45px"
-              ),
-              image
-            ),
-            value
-          )
-        },
+      team = reactable::colDef(
         name = name,
-        minWidth = 135,
-        align = "left"
+        minWidth = 165,
+        align = "left",
+        cell = function(value) {
+          team_id <- standings[team == value, id][1]
+
+          htmltools::div(
+            style = "display:flex; align-items:center; gap:8px;",
+            htmltools::img(
+              src = paste0("logos/", team_id, ".svg"),
+              style = "height:18px; width:18px; object-fit:contain;",
+              alt = value
+            ),
+            htmltools::span(
+              style = "font-weight:500; color:#1f2937;",
+              value
+            )
+          )
+        }
       ),
-      id = colDef(show = FALSE),
-      wins = colDef(name = "Wins", align = "center", minWidth = 50),
-      losses = colDef(name = "Losses", align = "center", minWidth = 50),
-      pct = colDef(name = "PCT", align = "center", minWidth = 50),
-      gb = colDef(name = "GB", align = "center", minWidth = 50),
-      last10 = colDef(name = "L10", align = "center", minWidth = 50)
+      id = reactable::colDef(show = FALSE),
+      wins = reactable::colDef(name = "W", align = "center", minWidth = 42),
+      losses = reactable::colDef(name = "L", align = "center", minWidth = 42),
+      pct = reactable::colDef(name = "PCT", align = "center", minWidth = 55),
+      gb = reactable::colDef(name = "GB", align = "center", minWidth = 45),
+      last10 = reactable::colDef(name = "L10", align = "center", minWidth = 50)
     ),
-    compact = FALSE,
+    compact = TRUE,
+    bordered = FALSE,
+    pagination = FALSE,
+    sortable = FALSE,
+    defaultPageSize = nrow(standings),
+    rowStyle = function(index) {
+      list(borderBottom = "1px solid #f1f5f9")
+    },
+    defaultColDef = reactable::colDef(
+      headerStyle = list(
+        fontSize = "12px",
+        fontWeight = 700,
+        textTransform = "uppercase",
+        color = "#5b6770",
+        borderBottom = "1px solid #e5e7eb"
+      ),
+      style = list(
+        fontVariantNumeric = "tabular-nums",
+        color = "#374151"
+      )
+    ),
     style = list(
-      fontFamily = gt::google_font("Fira Mono"),
-      width = "100%",
-      maxWidth = "none",
-      height = "100%"
-    ),
-    sortable = FALSE
+      fontFamily = "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+      fontSize = "12px",
+      background = "#ffffff",
+      border = "1px solid #e5e7eb",
+      borderRadius = "10px",
+      overflow = "hidden",
+      width = "100%"
+    )
   )
 }
 
@@ -830,7 +851,7 @@ leadersRctbl <- function(
 
   batting_stats <- ensureCols(
     batting_stats,
-    c("avg", "home_runs", "rbi", "ops", "woba", "war")
+    c("avg", "home_runs", "rbi", "ops", "woba", "war", "stolen_bases")
   )
   pitching_stats <- ensureCols(
     pitching_stats,
@@ -848,14 +869,17 @@ leadersRctbl <- function(
     "pitching"
   )
 
-  bq <- bq[!is.na(bq[["league"]]) & bq[["league"]] == league_name]
-  pq <- pq[!is.na(pq[["league"]]) & pq[["league"]] == league_name]
+  bq <- bq[!is.na(league) & league == league_name]
+  pq <- pq[!is.na(league) & league == league_name]
 
   bq[, team_id := as.character(team_id)]
   pq[, team_id := as.character(team_id)]
   abr[, team_id := as.character(team_id)]
 
-  top_rows <- function(
+  abr2 <- data.table::copy(abr)
+  data.table::setnames(abr2, "team", "team_abbr")
+
+  build_section <- function(
     dt,
     metric,
     label,
@@ -865,12 +889,8 @@ leadersRctbl <- function(
     digits = 3
   ) {
     x <- data.table::copy(dt[!is.na(get(metric))])
-
     x[, metric_num := as.numeric(get(metric))]
     x <- x[!is.na(metric_num)]
-
-    abr2 <- data.table::copy(abr)
-    data.table::setnames(abr2, "team", "team_abbr")
 
     x <- merge(x, abr2, by = "team_id", all.x = TRUE, sort = FALSE)
 
@@ -880,91 +900,150 @@ leadersRctbl <- function(
       order = c(if (decreasing) -1 else 1, 1)
     )
 
-    x <- utils::head(x, top_n)
+    x <- head(x, top_n)
 
-    x[, value := format(
-      round(metric_num, digits = digits),
-      nsmall = digits,
-      trim = TRUE
-    )]
+    x[,
+      value := format(round(metric_num, digits), nsmall = digits, trim = TRUE)
+    ]
 
-    header <- data.table::data.table(
-      sort_order = sort_order,
-      sort_rank = 0L,
-      is_header = TRUE,
-      line = toupper(label)
+    data.table::rbindlist(
+      list(
+        data.table::data.table(
+          sort_order = sort_order,
+          row_type = "header",
+          stat = label,
+          player = NA_character_,
+          team_abbr = NA_character_,
+          value = NA_character_
+        ),
+        x[, .(
+          sort_order = sort_order,
+          row_type = "data",
+          stat = label,
+          player = name,
+          team_abbr,
+          value
+        )]
+      ),
+      fill = TRUE
     )
-
-    rows <- x[, .(
-      sort_order = sort_order,
-      sort_rank = seq_len(.N),
-      is_header = FALSE,
-      line = sprintf("%-22s %s", paste0(name, " (", team_abbr, ")"), value)
-    )]
-
-    data.table::rbindlist(list(header, rows), fill = TRUE)
   }
 
   leaders <- data.table::rbindlist(
     list(
-      top_rows(bq, "avg", "BATTING AVG", 1, top_n, TRUE, 3),
-      top_rows(bq, "rbi", "RBI", 2, top_n, TRUE, 0),
-      top_rows(bq, "home_runs", "HOME RUNS", 3, top_n, TRUE, 0),
-      top_rows(bq, "stolen_bases", "STOLEN BASES", 4, top_n, TRUE, 0),
-      top_rows(bq, "ops", "ON-BASE + SLUGGING %", 5, top_n, TRUE, 3),
-      top_rows(bq, "war", "BATTER WAR", 6, top_n, TRUE, 1),
-      top_rows(pq, "era", "ERA", 7, top_n, FALSE, 2),
-      top_rows(pq, "wins", "WINS", 8, top_n, TRUE, 0),
-      top_rows(pq, "saves", "SAVES", 9, top_n, TRUE, 0),
-      top_rows(pq, "whip", "WHIP", 10, top_n, FALSE, 2),
-      top_rows(pq, "war", "PITCHER WAR", 11, top_n, TRUE, 1)
+      build_section(bq, "avg", "Batting Avg", 1, top_n, TRUE, 3),
+      build_section(bq, "rbi", "RBI", 2, top_n, TRUE, 0),
+      build_section(bq, "home_runs", "Home Runs", 3, top_n, TRUE, 0),
+      build_section(bq, "stolen_bases", "Stolen Bases", 4, top_n, TRUE, 0),
+      build_section(bq, "ops", "OPS", 5, top_n, TRUE, 3),
+      build_section(bq, "war", "Batter WAR", 6, top_n, TRUE, 1),
+      build_section(pq, "era", "ERA", 7, top_n, FALSE, 2),
+      build_section(pq, "wins", "Wins", 8, top_n, TRUE, 0),
+      build_section(pq, "saves", "Saves", 9, top_n, TRUE, 0),
+      build_section(pq, "whip", "WHIP", 10, top_n, FALSE, 2),
+      build_section(pq, "war", "Pitcher WAR", 11, top_n, TRUE, 1)
     ),
     fill = TRUE
   )
 
-  data.table::setorder(leaders, sort_order, sort_rank)
+  data.table::setorder(leaders, sort_order)
 
   reactable::reactable(
     leaders,
     columns = list(
-      line = reactable::colDef(
-        name = paste0(
-          ifelse(league_name == "American League", "AL", "NL"),
-          " LEADERS"
+      stat = reactable::colDef(
+        name = ifelse(
+          league_name == "American League",
+          "AL Leaders",
+          "NL Leaders"
         ),
-        html = TRUE,
+        minWidth = 110,
         cell = function(value, index) {
-          if (leaders$is_header[index]) {
+          if (leaders$row_type[index] == "header") {
             htmltools::div(
-              style = "font-weight: bold; color: #444; padding-top: 4px;",
+              style = "font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #5b6770; padding-top: 10px;",
               value
             )
           } else {
+            ""
+          }
+        }
+      ),
+      player = reactable::colDef(
+        name = "",
+        minWidth = 120,
+        cell = function(value, index) {
+          if (leaders$row_type[index] == "header") {
+            ""
+          } else {
             htmltools::div(
-              style = "white-space: pre; color: #2b6cb0;",
+              style = "font-weight: 500; color: #1f2937;",
+              value
+            )
+          }
+        }
+      ),
+      team_abbr = reactable::colDef(
+        name = "",
+        width = 45,
+        align = "left",
+        cell = function(value, index) {
+          if (leaders$row_type[index] == "header") {
+            ""
+          } else {
+            htmltools::span(
+              style = "color: #6b7280; font-size: 11px;",
+              value
+            )
+          }
+        }
+      ),
+      value = reactable::colDef(
+        name = "",
+        width = 55,
+        align = "right",
+        cell = function(value, index) {
+          if (leaders$row_type[index] == "header") {
+            ""
+          } else {
+            htmltools::div(
+              style = "font-variant-numeric: tabular-nums; font-weight: 600; color: #0f4c81;",
               value
             )
           }
         }
       ),
       sort_order = reactable::colDef(show = FALSE),
-      sort_rank = reactable::colDef(show = FALSE),
-      is_header = reactable::colDef(show = FALSE)
+      row_type = reactable::colDef(show = FALSE)
     ),
     compact = TRUE,
-    bordered = TRUE,
-    pagination = FALSE,
+    bordered = FALSE,
     highlight = FALSE,
+    pagination = FALSE,
+    defaultPageSize = nrow(leaders),
+    rowStyle = function(index) {
+      if (leaders$row_type[index] == "header") {
+        list(
+          background = "#f8fafc",
+          borderTop = "1px solid #e5e7eb"
+        )
+      } else {
+        list(
+          borderBottom = "1px solid #f1f5f9"
+        )
+      }
+    },
     style = list(
-      fontFamily = gt::google_font("Fira Mono"),
+      fontFamily = "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
       fontSize = "12px",
-      width = "100%",
-      maxWidth = "none",
-      height = "100%"
+      background = "#ffffff",
+      border = "1px solid #e5e7eb",
+      borderRadius = "10px",
+      overflow = "hidden",
+      width = "100%"
     )
   )
 }
-
 formatPlayerInfo <- function(dtPlayerInfo) {
   dt <- dtPlayerInfo
 
