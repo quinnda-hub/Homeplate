@@ -154,6 +154,17 @@ server <- function(input, output, session) {
     )
   })
 
+  observeEvent(input$leader_player_click, {
+    req(input$leader_player_click)
+
+    shiny::updateNavbarPage(session, "home", selected = "Player Stats")
+    shiny::updateSelectizeInput(
+      session,
+      "player_search",
+      selected = input$leader_player_click
+    )
+  })
+
   # Tables for player stats.
   output$batting_logs <- renderReactable({
     req(input$player_search)

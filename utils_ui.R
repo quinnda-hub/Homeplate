@@ -847,7 +847,7 @@ leadersRctbl <- function(
   league_name <- match.arg(league_name)
 
   abr <- teamAbbreviations()
-  current_season <- getCurrentSeason()
+  current_season <- as.character(getCurrentSeason())
 
   batting_stats <- ensureCols(
     batting_stats,
@@ -865,19 +865,18 @@ leadersRctbl <- function(
     pitching_stats[season == current_season]
   )
 
-  b_qual <- qualified(b_all, standings, "hitting")
-  p_qual <- qualified(p_all, standings, "pitching")
+  bq <- qualified(b_all, standings, "hitting")
+  pq <- qualified(p_all, standings, "pitching")
 
   b_all <- b_all[!is.na(league) & league == league_name]
   p_all <- p_all[!is.na(league) & league == league_name]
-
-  b_qual <- b_qual[!is.na(league) & league == league_name]
-  p_qual <- p_qual[!is.na(league) & league == league_name]
+  bq <- bq[!is.na(league) & league == league_name]
+  pq <- pq[!is.na(league) & league == league_name]
 
   b_all[, team_id := as.character(team_id)]
   p_all[, team_id := as.character(team_id)]
-  b_qual[, team_id := as.character(team_id)]
-  p_qual[, team_id := as.character(team_id)]
+  bq[, team_id := as.character(team_id)]
+  pq[, team_id := as.character(team_id)]
   abr[, team_id := as.character(team_id)]
 
   abr2 <- data.table::copy(abr)
@@ -921,6 +920,7 @@ leadersRctbl <- function(
           row_type = "header",
           stat = label,
           player = NA_character_,
+          player_id = NA_character_,
           team_abbr = NA_character_,
           value = NA_character_
         ),
@@ -929,6 +929,7 @@ leadersRctbl <- function(
           row_type = "data",
           stat = label,
           player = name,
+          player_id = as.character(id),
           team_abbr,
           value
         )]
@@ -939,16 +940,16 @@ leadersRctbl <- function(
 
   leaders <- data.table::rbindlist(
     list(
-      build_section(b_qual, "avg", "Batting Avg", 1, top_n, TRUE, 3),
-      build_section(b_all, "rbi", "RBI", 2, top_n, TRUE, 0),
+      build_section(bq, "avg", "Batting Avg", 1, top_n, TRUE, 3),
       build_section(b_all, "home_runs", "Home Runs", 3, top_n, TRUE, 0),
       build_section(b_all, "stolen_bases", "Stolen Bases", 4, top_n, TRUE, 0),
-      build_section(b_qual, "ops", "OPS", 5, top_n, TRUE, 3),
+      build_section(b_all, "rbi", "RBI", 2, top_n, TRUE, 0),
+      build_section(bq, "ops", "OPS", 5, top_n, TRUE, 3),
       build_section(b_all, "war", "Batter WAR", 6, top_n, TRUE, 1),
-      build_section(p_qual, "era", "ERA", 7, top_n, FALSE, 2),
+      build_section(pq, "era", "ERA", 7, top_n, FALSE, 2),
       build_section(p_all, "wins", "Wins", 8, top_n, TRUE, 0),
       build_section(p_all, "saves", "Saves", 9, top_n, TRUE, 0),
-      build_section(p_qual, "whip", "WHIP", 10, top_n, FALSE, 2),
+      build_section(pq, "whip", "WHIP", 10, top_n, FALSE, 2),
       build_section(p_all, "war", "Pitcher WAR", 11, top_n, TRUE, 1)
     ),
     fill = TRUE
@@ -984,8 +985,15 @@ leadersRctbl <- function(
           if (leaders$row_type[index] == "header") {
             ""
           } else {
-            htmltools::div(
-              style = "font-weight: 500; color: #1f2937;",
+            player_id <- leaders$player_id[index]
+            htmltools::tags$a(
+              href = "#",
+              onclick = sprintf(
+                "Shiny.setInputValue('leader_player_click', '%s', {priority: 'event'}); return false;",
+                player_id
+              ),
+              style = "font-weight: 500; color: #1f2937; text-decoration: none;",
+              title = "Open player stats",
               value
             )
           }
@@ -1022,7 +1030,8 @@ leadersRctbl <- function(
         }
       ),
       sort_order = reactable::colDef(show = FALSE),
-      row_type = reactable::colDef(show = FALSE)
+      row_type = reactable::colDef(show = FALSE),
+      player_id = reactable::colDef(show = FALSE)
     ),
     compact = TRUE,
     bordered = FALSE,
@@ -1050,34 +1059,6 @@ leadersRctbl <- function(
       overflow = "hidden",
       width = "100%"
     )
-  )
-}
-
-formatPlayerInfo <- function(dtPlayerInfo) {
-  dt <- dtPlayerInfo
-
-  p(
-    strong(dt$full_name, paste0("#", dt$primary_number)),
-    br(),
-    strong(
-      dt$primary_position,
-      "|",
-      "B/T:",
-      paste0(substr(dt[, bat_side], 1, 1), "/", substr(dt[, pitch_hand], 1, 1)),
-      br(),
-      dt$height,
-      "/",
-      dt$weight,
-      "|",
-      "Age:",
-      dt$current_age
-    ),
-    br(),
-    strong("Born:"),
-    dt$birth_date,
-    "in",
-    paste0(dt$birth_city, ","),
-    dt$birth_country
   )
 }
 
