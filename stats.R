@@ -100,119 +100,142 @@ ERA <- function(stats) {
   ][]
 }
 
-# this function will get year by year stats for any number of players
+# This function will get year by year stats for any number of players.
 .yearStats <- function(playerId, group = "hitting") {
   base <- "https://statsapi.mlb.com/api/"
-  end <-
-    paste0("v1/people/", "?personIds=", Reduce(paste0, paste0(playerId, ",")))
-  end <-
-    paste0(
-      substr(end, 1, nchar(end) - 1),
-      "&",
-      "hydrate=stats(group=[",
-      Reduce(paste0, paste0(group, ",")),
-      "]",
-      "type=[yearByYear,yearByYearAdvanced])"
+
+  person_ids <- paste(playerId, collapse = ",")
+
+  hydrate <- paste0(
+    "stats(group=[",
+    paste(group, collapse = ","),
+    "],type=[yearByYear,yearByYearAdvanced],team(league),leagueListId=mlb_hist)"
+  )
+
+  resp <- httr2::request(base) |>
+    httr2::req_url_path_append("v1", "people") |>
+    httr2::req_url_query(
+      personIds = person_ids,
+      hydrate = hydrate
+    ) |>
+    httr2::req_perform() |>
+    httr2::resp_body_json(simplifyVector = FALSE)
+
+  extract_split <- function(j) {
+    season <- purrr::pluck(j, "season", .default = NA_character_)
+    id <- purrr::pluck(j, "player", "id", .default = NA_integer_)
+    name <- purrr::pluck(j, "player", "fullName", .default = NA_character_)
+
+    team <- purrr::pluck(j, "team", "name", .default = "Combined")
+    team_id <- purrr::pluck(j, "team", "id", .default = "Combined")
+
+    league <- purrr::pluck(
+      j,
+      "team",
+      "league",
+      "name",
+      .default = NA_character_
     )
+    league_id <- purrr::pluck(j, "team", "league", "id", .default = NA_integer_)
 
-  player <- GET(paste0(base, end)) |> content()
+    stat <- purrr::pluck(j, "stat", .default = list())
 
-  aux <- function(players) {
-    player <- sapply(
-      players[["stats"]],
-      \(i) {
-        sapply(
-          i[["splits"]],
-          \(j) {
-            s <- j[["season"]]
-
-            id <- j[["player"]][["id"]]
-
-            n <- j[["player"]][["fullName"]]
-
-            t <-
-              if (is.null(j[["team"]][["name"]])) {
-                "Combined"
-              } else {
-                j[["team"]][["name"]]
-              }
-
-            ti <-
-              if (is.null(j[["team"]][["id"]])) {
-                "Combined"
-              } else {
-                j[["team"]][["id"]]
-              }
-
-            c(
-              list(id = id),
-              list(name = n),
-              list(season = s),
-              list(team = t),
-              list(team_id = ti),
-              j[["stat"]]
-            )
-          },
-          simplify = FALSE
-        )
-      },
-      simplify = FALSE
+    c(
+      list(
+        id = id,
+        name = name,
+        season = season,
+        team = team,
+        team_id = team_id,
+        league = league,
+        league_id = league_id
+      ),
+      stat
     )
-
-    sapply(player, rbindlist, fill = TRUE, simplify = FALSE)
   }
 
-  players <- sapply(player[["people"]], aux, simplify = FALSE) |>
-    sapply(as.data.table, simplify = FALSE) |>
-    rbindlist(fill = TRUE)
+  extract_stat_block <- function(stat_block) {
+    splits <- purrr::pluck(stat_block, "splits", .default = list())
 
-  #' Sometimes multiple year-by-year types will have the same columns
-  #' we can remove them here
+    if (length(splits) == 0) {
+      return(data.table::data.table())
+    }
 
-  players <-
-    players[, which(!duplicated(t(players))), by = id, with = FALSE]
+    purrr::map(splits, extract_split) |>
+      data.table::rbindlist(fill = TRUE)
+  }
+
+  extract_person <- function(person) {
+    stats <- purrr::pluck(person, "stats", .default = list())
+
+    if (length(stats) == 0) {
+      return(data.table::data.table())
+    }
+
+    purrr::map(stats, extract_stat_block) |>
+      data.table::rbindlist(fill = TRUE)
+  }
+
+  players <- purrr::pluck(resp, "people", .default = list()) |>
+    purrr::map(extract_person) |>
+    data.table::rbindlist(fill = TRUE)
 
   if (nrow(players) == 0) {
-    data.table(season = NA)
-  } else {
-    players[]
+    return(data.table::data.table(season = NA))
   }
-}
 
-yearStats <- function(playerId, group = "hitting") {
-  # We need to chunk API calls into groups of 500 so that the query is
-  # successful
-  players <-
-    Map(.yearStats, chunk(playerId, 500), group = group) |>
-    rbindlist(fill = TRUE) |>
-    janitor::clean_names()
+  players <- players[
+    ,
+    lapply(.SD, \(x) {
+      idx <- which(!is.na(x) & x != "")
+      if (length(idx)) x[idx[1]] else x[1]
+    }),
+    by = .(id, name, season, team, team_id, league, league_id)
+  ]
 
-  # If the player has no hitting, pitching, or fielding data - skip them.
-  if (is.na(players[1, season])) {
-    players[]
-  } else {
-    for (col in names(players)) {
-      set(
-        players,
-        i = which(players[[col]] %in% c(".---", "-.--")),
-        j = col,
-        value = NA
-      )
-    }
-    if (group %in% c("hitting", "pitching")) {
-      for (col in c("avg", "obp", "slg")) {
-        set(players, j = col, value = as.numeric(players[[col]]))
-      }
-    }
-    if (group == "pitching") {
-      players <- FIP(players)
-    }
-  }
-  players[, season := as.character(season)]
   players[]
 }
 
-# this function will get the game log for a player
+yearStats <- function(playerId, group = "hitting") {
+  players <- chunk(playerId, 500) |>
+    purrr::map(\(ids) .yearStats(ids, group = group)) |>
+    data.table::rbindlist(fill = TRUE) |>
+    janitor::clean_names()
+
+  if (is.na(players[1, season])) {
+    players[, season := as.character(season)]
+    return(players[])
+  }
+
+  for (col in names(players)) {
+    data.table::set(
+      players,
+      i = which(players[[col]] %in% c(".---", "-.--")),
+      j = col,
+      value = NA
+    )
+  }
+
+  if (group %in% c("hitting", "pitching")) {
+    for (col in c("avg", "obp", "slg")) {
+      if (col %in% names(players)) {
+        data.table::set(
+          players,
+          j = col,
+          value = as.numeric(players[[col]])
+        )
+      }
+    }
+  }
+
+  if (group == "pitching") {
+    players <- FIP(players)
+  }
+
+  players[, season := as.character(season)]
+  players[]
+}
+# This function will get the game log for a player.
 .gameLogs <- function(playerId, season, group = "hitting") {
   base <- "https://statsapi.mlb.com/api/"
   end <-
