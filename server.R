@@ -135,7 +135,7 @@ server <- function(input, output, session) {
     renderReactable(standingsRctbl(global_vals$standings, "nl east"))
 
   output$al_leaders <- renderReactable({
-    standingsLeadersRctbl(
+    leadersRctbl(
       global_vals$batting_stats(),
       global_vals$pitching_stats(),
       global_vals$standings,
@@ -145,7 +145,7 @@ server <- function(input, output, session) {
   })
 
   output$nl_leaders <- renderReactable({
-    standingsLeadersRctbl(
+    leadersRctbl(
       global_vals$batting_stats(),
       global_vals$pitching_stats(),
       global_vals$standings,

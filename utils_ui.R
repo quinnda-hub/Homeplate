@@ -847,7 +847,7 @@ leadersRctbl <- function(
   league_name <- match.arg(league_name)
 
   abr <- teamAbbreviations()
-  season <- getCurrentSeason()
+  current_season <- getCurrentSeason()
 
   batting_stats <- ensureCols(
     batting_stats,
@@ -858,22 +858,26 @@ leadersRctbl <- function(
     c("era", "wins", "war", "saves", "whip", "strikeouts")
   )
 
-  bq <- qualified(
-    batting_stats[season == as.character(season)],
-    standings,
-    "hitting"
+  b_all <- data.table::copy(
+    batting_stats[season == current_season]
   )
-  pq <- qualified(
-    pitching_stats[season == as.character(season)],
-    standings,
-    "pitching"
+  p_all <- data.table::copy(
+    pitching_stats[season == current_season]
   )
 
-  bq <- bq[!is.na(league) & league == league_name]
-  pq <- pq[!is.na(league) & league == league_name]
+  b_qual <- qualified(b_all, standings, "hitting")
+  p_qual <- qualified(p_all, standings, "pitching")
 
-  bq[, team_id := as.character(team_id)]
-  pq[, team_id := as.character(team_id)]
+  b_all <- b_all[!is.na(league) & league == league_name]
+  p_all <- p_all[!is.na(league) & league == league_name]
+
+  b_qual <- b_qual[!is.na(league) & league == league_name]
+  p_qual <- p_qual[!is.na(league) & league == league_name]
+
+  b_all[, team_id := as.character(team_id)]
+  p_all[, team_id := as.character(team_id)]
+  b_qual[, team_id := as.character(team_id)]
+  p_qual[, team_id := as.character(team_id)]
   abr[, team_id := as.character(team_id)]
 
   abr2 <- data.table::copy(abr)
@@ -903,7 +907,11 @@ leadersRctbl <- function(
     x <- head(x, top_n)
 
     x[,
-      value := format(round(metric_num, digits), nsmall = digits, trim = TRUE)
+      value := format(
+        round(metric_num, digits),
+        nsmall = digits,
+        trim = TRUE
+      )
     ]
 
     data.table::rbindlist(
@@ -931,17 +939,17 @@ leadersRctbl <- function(
 
   leaders <- data.table::rbindlist(
     list(
-      build_section(bq, "avg", "Batting Avg", 1, top_n, TRUE, 3),
-      build_section(bq, "rbi", "RBI", 2, top_n, TRUE, 0),
-      build_section(bq, "home_runs", "Home Runs", 3, top_n, TRUE, 0),
-      build_section(bq, "stolen_bases", "Stolen Bases", 4, top_n, TRUE, 0),
-      build_section(bq, "ops", "OPS", 5, top_n, TRUE, 3),
-      build_section(bq, "war", "Batter WAR", 6, top_n, TRUE, 1),
-      build_section(pq, "era", "ERA", 7, top_n, FALSE, 2),
-      build_section(pq, "wins", "Wins", 8, top_n, TRUE, 0),
-      build_section(pq, "saves", "Saves", 9, top_n, TRUE, 0),
-      build_section(pq, "whip", "WHIP", 10, top_n, FALSE, 2),
-      build_section(pq, "war", "Pitcher WAR", 11, top_n, TRUE, 1)
+      build_section(b_qual, "avg", "Batting Avg", 1, top_n, TRUE, 3),
+      build_section(b_all, "rbi", "RBI", 2, top_n, TRUE, 0),
+      build_section(b_all, "home_runs", "Home Runs", 3, top_n, TRUE, 0),
+      build_section(b_all, "stolen_bases", "Stolen Bases", 4, top_n, TRUE, 0),
+      build_section(b_qual, "ops", "OPS", 5, top_n, TRUE, 3),
+      build_section(b_all, "war", "Batter WAR", 6, top_n, TRUE, 1),
+      build_section(p_qual, "era", "ERA", 7, top_n, FALSE, 2),
+      build_section(p_all, "wins", "Wins", 8, top_n, TRUE, 0),
+      build_section(p_all, "saves", "Saves", 9, top_n, TRUE, 0),
+      build_section(p_qual, "whip", "WHIP", 10, top_n, FALSE, 2),
+      build_section(p_all, "war", "Pitcher WAR", 11, top_n, TRUE, 1)
     ),
     fill = TRUE
   )
@@ -1044,6 +1052,7 @@ leadersRctbl <- function(
     )
   )
 }
+
 formatPlayerInfo <- function(dtPlayerInfo) {
   dt <- dtPlayerInfo
 
