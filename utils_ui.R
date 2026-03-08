@@ -816,6 +816,155 @@ standingsRctbl <- function(dt, division) {
   )
 }
 
+standingsLeadersRctbl <- function(
+  batting_stats,
+  pitching_stats,
+  standings,
+  league_name = c("American League", "National League"),
+  top_n = 5
+) {
+  league_name <- match.arg(league_name)
+
+  abr <- teamAbbreviations()
+  season <- getCurrentSeason()
+
+  batting_stats <- ensureCols(
+    batting_stats,
+    c("avg", "home_runs", "rbi", "ops", "woba", "war")
+  )
+  pitching_stats <- ensureCols(
+    pitching_stats,
+    c("era", "wins", "war", "saves", "whip", "strikeouts")
+  )
+
+  bq <- qualified(
+    batting_stats[season == as.character(season)],
+    standings,
+    "hitting"
+  )
+  pq <- qualified(
+    pitching_stats[season == as.character(season)],
+    standings,
+    "pitching"
+  )
+
+  bq <- bq[!is.na(bq[["league"]]) & bq[["league"]] == league_name]
+  pq <- pq[!is.na(pq[["league"]]) & pq[["league"]] == league_name]
+
+  bq[, team_id := as.character(team_id)]
+  pq[, team_id := as.character(team_id)]
+  abr[, team_id := as.character(team_id)]
+
+  top_rows <- function(
+    dt,
+    metric,
+    label,
+    sort_order,
+    top_n,
+    decreasing = TRUE,
+    digits = 3
+  ) {
+    x <- data.table::copy(dt[!is.na(get(metric))])
+
+    x[, metric_num := as.numeric(get(metric))]
+    x <- x[!is.na(metric_num)]
+
+    abr2 <- data.table::copy(abr)
+    data.table::setnames(abr2, "team", "team_abbr")
+
+    x <- merge(x, abr2, by = "team_id", all.x = TRUE, sort = FALSE)
+
+    data.table::setorderv(
+      x,
+      cols = c("metric_num", "name"),
+      order = c(if (decreasing) -1 else 1, 1)
+    )
+
+    x <- utils::head(x, top_n)
+
+    x[, value := format(
+      round(metric_num, digits = digits),
+      nsmall = digits,
+      trim = TRUE
+    )]
+
+    header <- data.table::data.table(
+      sort_order = sort_order,
+      sort_rank = 0L,
+      is_header = TRUE,
+      line = toupper(label)
+    )
+
+    rows <- x[, .(
+      sort_order = sort_order,
+      sort_rank = seq_len(.N),
+      is_header = FALSE,
+      line = sprintf("%-22s %s", paste0(name, " (", team_abbr, ")"), value)
+    )]
+
+    data.table::rbindlist(list(header, rows), fill = TRUE)
+  }
+
+  leaders <- data.table::rbindlist(
+    list(
+      top_rows(bq, "avg", "BATTING AVG", 1, top_n, TRUE, 3),
+      top_rows(bq, "rbi", "RBI", 2, top_n, TRUE, 0),
+      top_rows(bq, "home_runs", "HOME RUNS", 3, top_n, TRUE, 0),
+      top_rows(bq, "stolen_bases", "STOLEN BASES", 4, top_n, TRUE, 0),
+      top_rows(bq, "ops", "ON-BASE + SLUGGING %", 5, top_n, TRUE, 3),
+      top_rows(bq, "war", "BATTER WAR", 6, top_n, TRUE, 1),
+      top_rows(pq, "era", "ERA", 7, top_n, FALSE, 2),
+      top_rows(pq, "wins", "WINS", 8, top_n, TRUE, 0),
+      top_rows(pq, "saves", "SAVES", 9, top_n, TRUE, 0),
+      top_rows(pq, "whip", "WHIP", 10, top_n, FALSE, 2),
+      top_rows(pq, "war", "PITCHER WAR", 11, top_n, TRUE, 1)
+    ),
+    fill = TRUE
+  )
+
+  data.table::setorder(leaders, sort_order, sort_rank)
+
+  reactable::reactable(
+    leaders,
+    columns = list(
+      line = reactable::colDef(
+        name = paste0(
+          ifelse(league_name == "American League", "AL", "NL"),
+          " LEADERS"
+        ),
+        html = TRUE,
+        cell = function(value, index) {
+          if (leaders$is_header[index]) {
+            htmltools::div(
+              style = "font-weight: bold; color: #444; padding-top: 4px;",
+              value
+            )
+          } else {
+            htmltools::div(
+              style = "white-space: pre; color: #2b6cb0;",
+              value
+            )
+          }
+        }
+      ),
+      sort_order = reactable::colDef(show = FALSE),
+      sort_rank = reactable::colDef(show = FALSE),
+      is_header = reactable::colDef(show = FALSE)
+    ),
+    compact = TRUE,
+    bordered = TRUE,
+    pagination = FALSE,
+    highlight = FALSE,
+    style = list(
+      fontFamily = gt::google_font("Fira Mono"),
+      fontSize = "12px",
+      width = "100%",
+      maxWidth = "none",
+      height = "100%"
+    )
+  )
+}
+
 formatPlayerInfo <- function(dtPlayerInfo) {
   dt <- dtPlayerInfo
 
