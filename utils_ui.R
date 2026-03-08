@@ -151,7 +151,7 @@ battingLogsRctbl <- function(logs) {
   )
 }
 
-battingStatsRctbl <- function(stats) {
+teamAbbreviations <- function() {
   abr <- teamIds() |>
     as.data.table() |>
     melt(
@@ -160,96 +160,198 @@ battingStatsRctbl <- function(stats) {
       value.name = "team_id"
     )
 
+  abr[]
+}
+
+ensureCols <- function(dt, cols) {
+  missing_cols <- setdiff(cols, names(dt))
+  for (col in missing_cols) {
+    dt[, (col) := NA]
+  }
+
+  dt[]
+}
+
+battingStatsRctbl <- function(
+  stats,
+  stat_group = c("overview", "production", "discipline", "value")
+) {
+  stat_group <- match.arg(stat_group)
+
+  abr <- teamAbbreviations()
+
   dt <- copy(stats)
 
-  dt[, def := fielding + positional]
+  dt <- ensureCols(
+    dt,
+    c(
+      "fielding",
+      "positional",
+      "at_bats",
+      "iso",
+      "babip",
+      "extra_base_hits",
+      "walks_per_plate_appearance",
+      "strikeouts_per_plate_appearance",
+      "home_runs_per_plate_appearance",
+      "pitches_per_plate_appearance",
+      "walks_per_strikeout",
+      "at_bats_per_home_run",
+      "woba",
+      "w_rc_plus",
+      "base_running",
+      "war"
+    )
+  )
 
-  dt <-
-    dt[, .(
-      season,
-      team_id,
-      games_played,
-      plate_appearances,
-      runs,
-      hits,
-      doubles,
-      triples,
-      home_runs,
-      rbi,
-      base_on_balls,
-      strike_outs,
-      stolen_bases,
-      caught_stealing,
-      avg,
-      obp,
-      slg,
-      ops,
-      woba,
-      w_rc_plus,
-      base_running,
-      def,
-      war
-    )]
+  dt[, def := as.numeric(fielding) + as.numeric(positional)]
+  dt[, `:=`(
+    bb_pct = as.numeric(walks_per_plate_appearance) * 100,
+    k_pct = as.numeric(strikeouts_per_plate_appearance) * 100,
+    hr_pct = as.numeric(home_runs_per_plate_appearance) * 100
+  )]
 
-  dt[, w_rc_plus := format(w_rc_plus, digits = 1)]
+  group_cols <- list(
+    overview = c(
+      "season",
+      "team_id",
+      "games_played",
+      "plate_appearances",
+      "at_bats",
+      "runs",
+      "hits",
+      "home_runs",
+      "rbi",
+      "k_pct",
+      "bb_pct",
+      "avg",
+      "obp",
+      "slg",
+      "ops",
+      "woba",
+      "war"
+    ),
+    production = c(
+      "season",
+      "team_id",
+      "doubles",
+      "triples",
+      "home_runs",
+      "extra_base_hits",
+      "total_bases",
+      "rbi",
+      "stolen_bases",
+      "caught_stealing",
+      "iso",
+      "babip",
+      "at_bats_per_home_run"
+    ),
+    discipline = c(
+      "season",
+      "team_id",
+      "plate_appearances",
+      "base_on_balls",
+      "intentional_walks",
+      "strike_outs",
+      "k_pct",
+      "bb_pct",
+      "hr_pct",
+      "pitches_per_plate_appearance",
+      "walks_per_strikeout"
+    ),
+    value = c(
+      "season",
+      "team_id",
+      "woba",
+      "w_rc_plus",
+      "base_running",
+      "def",
+      "war"
+    )
+  )
 
-  # Pretty printing
-  for (col in c("avg", "obp", "slg", "ops", "woba")) {
+  selected_cols <- group_cols[[stat_group]]
+  dt <- dt[, ..selected_cols]
+
+  for (col in intersect(
+    c("avg", "obp", "slg", "ops", "woba", "iso", "babip"),
+    names(dt)
+  )) {
     set(
       dt,
       j = col,
       value = scales::label_number(accuracy = 0.001)(as.numeric(dt[[col]]))
     )
   }
-  for (col in c("base_running", "def", "war")) {
+  for (col in intersect(c("k_pct", "bb_pct", "hr_pct"), names(dt))) {
     set(
       dt,
       j = col,
       value = scales::label_number(accuracy = 0.1)(as.numeric(dt[[col]]))
     )
   }
+  for (col in intersect(c("base_running", "def", "war"), names(dt))) {
+    set(
+      dt,
+      j = col,
+      value = scales::label_number(accuracy = 0.1)(as.numeric(dt[[col]]))
+    )
+  }
+  if ("w_rc_plus" %in% names(dt)) {
+    dt[, w_rc_plus := format(as.numeric(w_rc_plus), digits = 1)]
+  }
+
+  column_labels <- list(
+    season = colDef(name = "Season", minWidth = 55, align = "left"),
+    team_id = colDef(
+      name = "Team",
+      minWidth = 65,
+      cell = \(value) {
+        if (value == "Combined") {
+          "Combined"
+        } else {
+          abr[team_id == value, team]
+        }
+      }
+    ),
+    games_played = colDef(name = "G"),
+    plate_appearances = colDef(name = "PA"),
+    at_bats = colDef(name = "AB"),
+    runs = colDef(name = "R"),
+    hits = colDef(name = "H"),
+    doubles = colDef(name = "2B"),
+    triples = colDef(name = "3B"),
+    home_runs = colDef(name = "HR"),
+    rbi = colDef(name = "RBI"),
+    base_on_balls = colDef(name = "BB"),
+    intentional_walks = colDef(name = "IBB"),
+    strike_outs = colDef(name = "SO"),
+    stolen_bases = colDef(name = "SB"),
+    caught_stealing = colDef(name = "CS"),
+    total_bases = colDef(name = "TB"),
+    extra_base_hits = colDef(name = "XBH"),
+    avg = colDef(name = "AVG", minWidth = 55),
+    obp = colDef(name = "OBP", minWidth = 55),
+    slg = colDef(name = "SLG", minWidth = 55),
+    ops = colDef(name = "OPS", minWidth = 55),
+    iso = colDef(name = "ISO", minWidth = 55),
+    babip = colDef(name = "BABIP", minWidth = 55),
+    at_bats_per_home_run = colDef(name = "AB/HR", minWidth = 60),
+    k_pct = colDef(name = "K%", minWidth = 55),
+    bb_pct = colDef(name = "BB%", minWidth = 55),
+    hr_pct = colDef(name = "HR%", minWidth = 55),
+    pitches_per_plate_appearance = colDef(name = "P/PA", minWidth = 55),
+    walks_per_strikeout = colDef(name = "BB/SO", minWidth = 55),
+    woba = colDef(name = "wOBA", minWidth = 55),
+    w_rc_plus = colDef(name = "wRC+", minWidth = 55),
+    base_running = colDef(name = "BsR", minWidth = 55),
+    def = colDef(name = "Def", minWidth = 55),
+    war = colDef(name = "WAR", minWidth = 55)
+  )
 
   reactable::reactable(
     dt,
-    columns = list(
-      season = colDef(
-        name = "Season",
-        minWidth = 55,
-        align = "left"
-      ),
-      team_id = colDef(
-        name = "Team",
-        minWidth = 65,
-        cell = \(value) {
-          if (value == "Combined") {
-            "Combined"
-          } else {
-            abr[team_id == value, team]
-          }
-        }
-      ),
-      games_played = colDef(name = "G"),
-      plate_appearances = colDef(name = "PA"),
-      runs = colDef(name = "R"),
-      hits = colDef(name = "H"),
-      doubles = colDef(name = "2B"),
-      triples = colDef(name = "3B"),
-      home_runs = colDef(name = "HR"),
-      rbi = colDef(name = "RBI"),
-      base_on_balls = colDef(name = "BB"),
-      strike_outs = colDef(name = "SO"),
-      stolen_bases = colDef(name = "SB"),
-      caught_stealing = colDef(name = "CS"),
-      avg = colDef(name = "AVG", minWidth = 55),
-      obp = colDef(name = "OBP", minWidth = 55),
-      slg = colDef(name = "SLG", minWidth = 55),
-      ops = colDef(name = "OPS", minWidth = 55),
-      woba = colDef(name = "wOBA", minWidth = 55),
-      w_rc_plus = colDef(name = "wRC+", minWidth = 55),
-      base_running = colDef(name = "BsR", minWidth = 55),
-      def = colDef(name = "Def", minWidth = 55),
-      war = colDef(name = "WAR", minWidth = 55)
-    ),
+    columns = column_labels,
     compact = TRUE,
     style = list(
       fontFamily = gt::google_font("Fira Mono"),
