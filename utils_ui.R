@@ -76,6 +76,7 @@ battingLogsRctbl <- function(logs) {
 
   reactable::reactable(
     dt,
+    highlight = TRUE,
     columns = list(
       date = colDef(
         name = "Date",
@@ -214,6 +215,7 @@ battingStatsRctbl <- function(
   group_cols <- list(
     overview = c(
       "season",
+      "age",
       "team_id",
       "games_played",
       "plate_appearances",
@@ -233,6 +235,7 @@ battingStatsRctbl <- function(
     ),
     production = c(
       "season",
+      "age",
       "team_id",
       "doubles",
       "triples",
@@ -248,6 +251,7 @@ battingStatsRctbl <- function(
     ),
     discipline = c(
       "season",
+      "age",
       "team_id",
       "plate_appearances",
       "base_on_balls",
@@ -261,6 +265,7 @@ battingStatsRctbl <- function(
     ),
     value = c(
       "season",
+      "age",
       "team_id",
       "woba",
       "w_rc_plus",
@@ -303,6 +308,7 @@ battingStatsRctbl <- function(
 
   column_labels <- list(
     season = colDef(name = "Season", minWidth = 55, align = "left"),
+    age = colDef(name = "Age"),
     team_id = colDef(
       name = "Team",
       minWidth = 65,
@@ -351,6 +357,7 @@ battingStatsRctbl <- function(
 
   reactable::reactable(
     dt,
+    highlight = TRUE,
     columns = column_labels,
     compact = TRUE,
     style = list(
@@ -394,10 +401,10 @@ pitchingLogsRctbl <- function(logs) {
       runs,
       earned_runs,
       home_runs,
-      base_on_balls,
       strike_outs,
-      walks_per9inn,
+      base_on_balls,
       strikeouts_per9inn,
+      walks_per9inn,
       home_runs_per9,
       era,
       fip,
@@ -414,6 +421,7 @@ pitchingLogsRctbl <- function(logs) {
 
   reactable::reactable(
     dt,
+    highlight = TRUE,
     columns = list(
       date = colDef(
         name = "Date",
@@ -536,12 +544,17 @@ pitchingStatsRctbl <- function(
   dt[, `:=`(
     k_pct = as.numeric(strikeouts_per_plate_appearance) * 100,
     bb_pct = as.numeric(walks_per_plate_appearance) * 100,
+    fly_ball_percentage = as.numeric(fly_ball_percentage) * 100,
+    gidp_percentage = as.numeric(gidp_percentage) * 100,
+    strike_percentage = as.numeric(strike_percentage) * 100,
+    whiff_percentage = as.numeric(whiff_percentage) * 100,
     k_minus_bb_pct = as.numeric(strikeouts_minus_walks_percentage) * 100
   )]
 
   group_cols <- list(
     overview = c(
       "season",
+      "age",
       "team_id",
       "games_played",
       "games_started",
@@ -550,8 +563,8 @@ pitchingStatsRctbl <- function(
       "losses",
       "saves",
       "holds",
-      "bb_pct",
       "k_pct",
+      "bb_pct",
       "era",
       "i.fip",
       "xfip",
@@ -559,6 +572,7 @@ pitchingStatsRctbl <- function(
     ),
     run_prevention = c(
       "season",
+      "age",
       "team_id",
       "earned_runs",
       "runs",
@@ -575,12 +589,13 @@ pitchingStatsRctbl <- function(
     ),
     discipline = c(
       "season",
+      "age",
       "team_id",
       "strike_outs",
       "base_on_balls",
       "strikeout_walk_ratio",
-      "bb_pct",
       "k_pct",
+      "bb_pct",
       "k_minus_bb_pct",
       "strikeouts_per9inn",
       "walks_per9inn",
@@ -589,6 +604,7 @@ pitchingStatsRctbl <- function(
     ),
     contact = c(
       "season",
+      "age",
       "team_id",
       "ground_outs",
       "air_outs",
@@ -601,9 +617,8 @@ pitchingStatsRctbl <- function(
     ),
     value = c(
       "season",
+      "age",
       "team_id",
-      "c_fip",
-      "fip",
       "i.fip",
       "xfip",
       "era_minus",
@@ -655,6 +670,7 @@ pitchingStatsRctbl <- function(
 
   column_labels <- list(
     season = colDef(name = "Season", minWidth = 55),
+    age = colDef(name = "Age"),
     team_id = colDef(
       name = "Team",
       cell = \(value) {
@@ -710,6 +726,7 @@ pitchingStatsRctbl <- function(
 
   reactable::reactable(
     dt,
+    highlight = TRUE,
     columns = column_labels,
     defaultColDef = colDef(
       align = "center",

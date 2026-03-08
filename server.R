@@ -117,10 +117,28 @@ server <- function(input, output, session) {
     battingLogsRctbl(blogs[player_id == input$player_search])
   })
 
-  output$batting_stats <- renderReactable({
+  output$batting_stats_overview <- renderReactable({
     req(input$player_search)
     bstats <- global_vals$batting_stats()
-    battingStatsRctbl(bstats[id == input$player_search])
+    battingStatsRctbl(bstats[id == input$player_search], "overview")
+  })
+
+  output$batting_stats_production <- renderReactable({
+    req(input$player_search)
+    bstats <- global_vals$batting_stats()
+    battingStatsRctbl(bstats[id == input$player_search], "production")
+  })
+
+  output$batting_stats_discipline <- renderReactable({
+    req(input$player_search)
+    bstats <- global_vals$batting_stats()
+    battingStatsRctbl(bstats[id == input$player_search], "discipline")
+  })
+
+  output$batting_stats_value <- renderReactable({
+    req(input$player_search)
+    bstats <- global_vals$batting_stats()
+    battingStatsRctbl(bstats[id == input$player_search], "value")
   })
 
   output$pitching_logs <- renderReactable({
@@ -129,10 +147,34 @@ server <- function(input, output, session) {
     pitchingLogsRctbl(plogs[player_id == input$player_search])
   })
 
-  output$pitching_stats <- renderReactable({
+  output$pitching_stats_overview <- renderReactable({
     req(input$player_search)
     pstats <- global_vals$pitching_stats()
-    pitchingStatsRctbl(pstats[id == input$player_search])
+    pitchingStatsRctbl(pstats[id == input$player_search], "overview")
+  })
+
+  output$pitching_stats_run_prevention <- renderReactable({
+    req(input$player_search)
+    pstats <- global_vals$pitching_stats()
+    pitchingStatsRctbl(pstats[id == input$player_search], "run_prevention")
+  })
+
+  output$pitching_stats_discipline <- renderReactable({
+    req(input$player_search)
+    pstats <- global_vals$pitching_stats()
+    pitchingStatsRctbl(pstats[id == input$player_search], "discipline")
+  })
+
+  output$pitching_stats_contact <- renderReactable({
+    req(input$player_search)
+    pstats <- global_vals$pitching_stats()
+    pitchingStatsRctbl(pstats[id == input$player_search], "contact")
+  })
+
+  output$pitching_stats_value <- renderReactable({
+    req(input$player_search)
+    pstats <- global_vals$pitching_stats()
+    pitchingStatsRctbl(pstats[id == input$player_search], "value")
   })
 
   # Since head shots can change, especially around the trade deadline, we want
