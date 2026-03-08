@@ -96,6 +96,30 @@ server <- function(input, output, session) {
     updateSliderInput(session, "rolling_window", value = val, max = max)
   })
 
+  output$standings_layout <- renderUI({
+    standings_outputs <- bslib::layout_column_wrap(
+      width = 1 / 2,
+      reactable::reactableOutput("al_east"),
+      reactable::reactableOutput("nl_east"),
+      reactable::reactableOutput("al_central"),
+      reactable::reactableOutput("nl_central"),
+      reactable::reactableOutput("al_west"),
+      reactable::reactableOutput("nl_west")
+    )
+
+    if (isTRUE(input$show_leaderboards)) {
+      shiny::fluidRow(
+        shiny::column(2, reactable::reactableOutput("al_leaders")),
+        shiny::column(8, standings_outputs),
+        shiny::column(2, reactable::reactableOutput("nl_leaders"))
+      )
+    } else {
+      shiny::fluidRow(
+        shiny::column(12, standings_outputs)
+      )
+    }
+  })
+
   # Six standings tables for each division.
   output$al_west <-
     renderReactable(standingsRctbl(global_vals$standings, "al west"))
