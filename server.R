@@ -109,9 +109,18 @@ server <- function(input, output, session) {
 
     if (isTRUE(input$show_leaderboards)) {
       shiny::fluidRow(
-        shiny::column(2, reactable::reactableOutput("al_leaders")),
-        shiny::column(8, standings_outputs),
-        shiny::column(2, reactable::reactableOutput("nl_leaders"))
+        shiny::div(
+          class = "col-12 col-md-3 col-lg-2",
+          reactable::reactableOutput("al_leaders")
+        ),
+        shiny::div(
+          class = "col-12 col-md-6 col-lg-8",
+          standings_outputs
+        ),
+        shiny::div(
+          class = "col-12 col-md-3 col-lg-2",
+          reactable::reactableOutput("nl_leaders")
+        )
       )
     } else {
       shiny::fluidRow(

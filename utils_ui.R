@@ -164,6 +164,34 @@ teamAbbreviations <- function() {
   abr[]
 }
 
+formatPlayerInfo <- function(dtPlayerInfo) {
+  dt <- dtPlayerInfo
+
+  p(
+    strong(dt$full_name, paste0("#", dt$primary_number)),
+    br(),
+    strong(
+      dt$primary_position,
+      "|",
+      "B/T:",
+      paste0(substr(dt[, bat_side], 1, 1), "/", substr(dt[, pitch_hand], 1, 1)),
+      br(),
+      dt$height,
+      "/",
+      dt$weight,
+      "|",
+      "Age:",
+      dt$current_age
+    ),
+    br(),
+    strong("Born:"),
+    dt$birth_date,
+    "in",
+    paste0(dt$birth_city, ","),
+    dt$birth_country
+  )
+}
+
 ensureCols <- function(dt, cols) {
   missing_cols <- setdiff(cols, names(dt))
   for (col in missing_cols) {
@@ -970,7 +998,7 @@ leadersRctbl <- function(
         cell = function(value, index) {
           if (leaders$row_type[index] == "header") {
             htmltools::div(
-              style = "font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #5b6770; padding-top: 10px;",
+              style = "font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #5b6770; padding-top: 10px; text-align: center;",
               value
             )
           } else {
