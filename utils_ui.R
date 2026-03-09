@@ -914,7 +914,7 @@ leadersRctbl <- function(
     dt,
     metric,
     label,
-    sort_order,
+    section_id,
     top_n,
     decreasing = TRUE,
     digits = 3
@@ -941,49 +941,44 @@ leadersRctbl <- function(
       )
     ]
 
-    data.table::rbindlist(
-      list(
-        data.table::data.table(
-          sort_order = sort_order,
-          row_type = "header",
-          stat = label,
-          player = NA_character_,
-          player_id = NA_character_,
-          team_abbr = NA_character_,
-          value = NA_character_
-        ),
-        x[, .(
-          sort_order = sort_order,
-          row_type = "data",
-          stat = label,
-          player = name,
-          player_id = as.character(id),
-          team_abbr,
-          value
-        )]
-      ),
-      fill = TRUE
+    list(
+      id = section_id,
+      label = label,
+      rows = x[, .(
+        player = name,
+        player_id = as.character(id),
+        team_abbr,
+        value
+      )]
     )
   }
 
-  leaders <- data.table::rbindlist(
-    list(
-      build_section(bq, "avg", "Batting Avg", 1, top_n, TRUE, 3),
-      build_section(b_all, "home_runs", "Home Runs", 3, top_n, TRUE, 0),
-      build_section(b_all, "stolen_bases", "Stolen Bases", 4, top_n, TRUE, 0),
-      build_section(b_all, "rbi", "RBI", 2, top_n, TRUE, 0),
-      build_section(bq, "ops", "OPS", 5, top_n, TRUE, 3),
-      build_section(b_all, "war", "Batter WAR", 6, top_n, TRUE, 1),
-      build_section(pq, "era", "ERA", 7, top_n, FALSE, 2),
-      build_section(p_all, "wins", "Wins", 8, top_n, TRUE, 0),
-      build_section(p_all, "saves", "Saves", 9, top_n, TRUE, 0),
-      build_section(pq, "whip", "WHIP", 10, top_n, FALSE, 2),
-      build_section(p_all, "war", "Pitcher WAR", 11, top_n, TRUE, 1)
-    ),
-    fill = TRUE
+  sections <- list(
+    build_section(bq, "avg", "Batting Avg", "batting_avg", top_n, TRUE, 3),
+    build_section(b_all, "rbi", "RBI", "rbi", top_n, TRUE, 0),
+    build_section(b_all, "home_runs", "Home Runs", "home_runs", top_n, TRUE, 0),
+    build_section(b_all, "stolen_bases", "Stolen Bases", "stolen_bases", top_n, TRUE, 0),
+    build_section(bq, "ops", "OPS", "ops", top_n, TRUE, 3),
+    build_section(b_all, "war", "Batter WAR", "batter_war", top_n, TRUE, 1),
+    build_section(pq, "era", "ERA", "era", top_n, FALSE, 2),
+    build_section(p_all, "wins", "Wins", "wins", top_n, TRUE, 0),
+    build_section(p_all, "saves", "Saves", "saves", top_n, TRUE, 0),
+    build_section(pq, "whip", "WHIP", "whip", top_n, FALSE, 2),
+    build_section(p_all, "war", "Pitcher WAR", "pitcher_war", top_n, TRUE, 1)
   )
 
-  data.table::setorder(leaders, sort_order)
+  leaders <- data.table::rbindlist(
+    lapply(sections, function(section) {
+      section_rows <- data.table::copy(section$rows)
+      section_rows[, `:=`(
+        section_id = section$id,
+        stat = section$label
+      )]
+      section_rows
+    }),
+    fill = TRUE,
+    use.names = TRUE
+  )
 
   reactable::reactable(
     leaders,
@@ -996,35 +991,27 @@ leadersRctbl <- function(
         ),
         minWidth = 110,
         cell = function(value, index) {
-          if (leaders$row_type[index] == "header") {
-            htmltools::div(
-              style = "font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #5b6770; padding-top: 10px; text-align: center;",
-              value
-            )
-          } else {
-            ""
-          }
+          htmltools::div(
+            style = "font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #5b6770; text-align: left;",
+            value
+          )
         }
       ),
       player = reactable::colDef(
         name = "",
         minWidth = 120,
         cell = function(value, index) {
-          if (leaders$row_type[index] == "header") {
-            ""
-          } else {
-            player_id <- leaders$player_id[index]
-            htmltools::tags$a(
-              href = "#",
-              onclick = sprintf(
-                "Shiny.setInputValue('leader_player_click', '%s', {priority: 'event'}); return false;",
-                player_id
-              ),
-              style = "font-weight: 500; color: #1f2937; text-decoration: none;",
-              title = "Open player stats",
-              value
-            )
-          }
+          player_id <- leaders$player_id[index]
+          htmltools::tags$a(
+            href = "#",
+            onclick = sprintf(
+              "Shiny.setInputValue('leader_player_click', '%s', {priority: 'event'}); return false;",
+              player_id
+            ),
+            style = "font-weight: 500; color: #1f2937; text-decoration: none;",
+            title = "Open player stats",
+            value
+          )
         }
       ),
       team_abbr = reactable::colDef(
@@ -1032,14 +1019,10 @@ leadersRctbl <- function(
         width = 45,
         align = "left",
         cell = function(value, index) {
-          if (leaders$row_type[index] == "header") {
-            ""
-          } else {
-            htmltools::span(
-              style = "color: #6b7280; font-size: 11px;",
-              value
-            )
-          }
+          htmltools::span(
+            style = "color: #6b7280; font-size: 11px;",
+            value
+          )
         }
       ),
       value = reactable::colDef(
@@ -1047,18 +1030,13 @@ leadersRctbl <- function(
         width = 55,
         align = "right",
         cell = function(value, index) {
-          if (leaders$row_type[index] == "header") {
-            ""
-          } else {
-            htmltools::div(
-              style = "font-variant-numeric: tabular-nums; font-weight: 600; color: #0f4c81;",
-              value
-            )
-          }
+          htmltools::div(
+            style = "font-variant-numeric: tabular-nums; font-weight: 600; color: #0f4c81;",
+            value
+          )
         }
       ),
-      sort_order = reactable::colDef(show = FALSE),
-      row_type = reactable::colDef(show = FALSE),
+      section_id = reactable::colDef(show = FALSE),
       player_id = reactable::colDef(show = FALSE)
     ),
     compact = TRUE,
@@ -1067,9 +1045,8 @@ leadersRctbl <- function(
     pagination = FALSE,
     defaultPageSize = nrow(leaders),
     rowStyle = function(index) {
-      if (leaders$row_type[index] == "header") {
+      if (index > 1 && leaders$section_id[index] != leaders$section_id[index - 1]) {
         list(
-          background = "#f8fafc",
           borderTop = "1px solid #e5e7eb"
         )
       } else {
